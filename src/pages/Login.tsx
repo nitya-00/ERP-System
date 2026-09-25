@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../store/AppContext";
 import { demoUsers, schoolStats, type Role } from "../data/db";
@@ -26,6 +26,15 @@ export default function Login() {
   const [pw, setPw] = useState(demoUsers.admin.password);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Deep-link shortcut: /login?as=teacher signs straight into that portal.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("as") as Role | null;
+    if (wanted && wanted in demoUsers) {
+      login(wanted);
+      nav(home[wanted], { replace: true });
+    }
+  }, []);
 
   const pick = (r: Role) => {
     setRole(r);

@@ -14,7 +14,7 @@ import {
   demoStudentId,
   demoUsers,
   marks as seedMarks,
-  notices as seedNotices,
+  seedNotices,
   payments as seedPayments,
   seedNotifications,
   students as seedStudents,
