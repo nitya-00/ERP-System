@@ -1,13 +1,27 @@
 import { useState } from "react";
-import { classSections, teachers } from "../../data/db";
+import { classLabel, teachers } from "../../data/db";
 import { Badge, Card, Icon, Modal, PageHead, Person, Stat, statusTone } from "../../components/ui";
 import { useApp } from "../../store/AppContext";
+import type { ClassRow } from "../../data/db";
+
+const teacherOf = (name: string) => teachers.find((x) => x.name === name);
 
 export default function TeachersClasses() {
-  const { toast } = useApp();
+  const { toast, classes, students, assignClassTeacher } = useApp();
   const [tab, setTab] = useState<"teachers" | "classes">("teachers");
   const [open, setOpen] = useState<string | null>(null);
+  const [assignFor, setAssignFor] = useState<ClassRow | null>(null);
   const t = teachers.find((x) => x.id === open);
+
+  /* a class is unstaffed when its teacher is missing or not on duty */
+  const unstaffed = (c: ClassRow) => {
+    const tch = teacherOf(c.classTeacher);
+    return !tch || tch.status !== "Active";
+  };
+  const needsSub = classes.filter(unstaffed);
+
+  const classTeacherOf = (name: string) =>
+    classes.filter((c) => c.classTeacher === name).map((c) => classLabel(c.className, c.section));
 
   return (
     <>
@@ -29,9 +43,15 @@ export default function TeachersClasses() {
 
       <div className="grid g-4">
         <Stat label="Teaching Staff" value={teachers.length} icon="cap" tone="bg-primary" foot={`${teachers.filter((x) => x.status === "Active").length} currently on duty`} />
-        <Stat label="Classes & Sections" value={classSections.length} icon="book" tone="bg-violet" foot="Across primary & secondary" />
-        <Stat label="Subjects Offered" value={8} icon="file" tone="bg-info" foot="Core + co-curricular" />
+        <Stat label="Classes & Sections" value={classes.length} icon="book" tone="bg-violet" foot={`${students.length} students enrolled`} />
         <Stat label="On Leave" value={teachers.filter((x) => x.status === "On Leave").length} icon="clock" tone="bg-warning" foot="Today" />
+        <Stat
+          label="Needs a Substitute"
+          value={needsSub.length}
+          icon="bell"
+          tone={needsSub.length ? "bg-danger" : "bg-success"}
+          foot={needsSub.length ? "Class teacher unavailable" : "All classes staffed"}
+        />
       </div>
 
       {tab === "teachers" ? (
@@ -47,6 +67,10 @@ export default function TeachersClasses() {
               <div className="divider" />
               <div className="kv"><span className="k">Subject</span><span className="v">{x.subject}</span></div>
               <div className="kv"><span className="k">Classes handled</span><span className="v">{x.classes.join(", ")}</span></div>
+              <div className="kv">
+                <span className="k">Class teacher of</span>
+                <span className="v">{classTeacherOf(x.name).join(", ") || "—"}</span>
+              </div>
               <div className="kv"><span className="k">Experience</span><span className="v">{x.experience} years</span></div>
               <div className="kv"><span className="k">Qualification</span><span className="v">{x.qualification}</span></div>
               <div className="flex" style={{ marginTop: 14 }}>
@@ -62,40 +86,73 @@ export default function TeachersClasses() {
           ))}
         </div>
       ) : (
-        <Card title="Class & Section Register" sub="Class teacher, strength, room and subject load" pad={false}>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Class</th>
-                  <th>Section</th>
-                  <th>Class Teacher</th>
-                  <th className="num">Students</th>
-                  <th>Room</th>
-                  <th>Subjects</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classSections.map((c) => (
-                  <tr key={c.id}>
-                    <td className="strong">{c.className}</td>
-                    <td><Badge tone="b-primary" plain>{c.section}</Badge></td>
-                    <td>{c.classTeacher}</td>
-                    <td className="num">{c.students}</td>
-                    <td>{c.room}</td>
-                    <td>
-                      <div className="flex flex-wrap gap-sm">
-                        {c.subjects.map((s) => (
-                          <span key={s} className="badge b-gray plain">{s}</span>
-                        ))}
-                      </div>
-                    </td>
+        <>
+          {needsSub.length > 0 && (
+            <div className="card mt" style={{ padding: "14px 18px", borderColor: "var(--danger)", background: "rgba(224,36,36,.05)" }}>
+              <div className="flex" style={{ gap: 10 }}>
+                <Icon name="bell" size={18} />
+                <div>
+                  <div className="strong">
+                    {needsSub.length} class{needsSub.length > 1 ? "es" : ""} currently {needsSub.length > 1 ? "have" : "has"} no available teacher
+                  </div>
+                  <div className="small muted">
+                    {needsSub.map((c) => classLabel(c.className, c.section)).join(", ")} — a replacement / temporary
+                    class teacher is required.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Card title="Class & Section Register" sub="Class teacher, availability, strength, room and subject load" pad={false}>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Class Teacher</th>
+                    <th>Availability</th>
+                    <th className="num">Students</th>
+                    <th>Room</th>
+                    <th className="num">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </thead>
+                <tbody>
+                  {classes.map((c) => {
+                    const bad = unstaffed(c);
+                    return (
+                      <tr key={c.id}>
+                        <td className="strong">{c.className}</td>
+                        <td><Badge tone="b-primary" plain>{c.section || "—"}</Badge></td>
+                        <td>{c.classTeacher}</td>
+                        <td>
+                          {bad ? (
+                            <Badge tone="b-danger">No teacher available</Badge>
+                          ) : (
+                            <Badge tone="b-success">On duty</Badge>
+                          )}
+                        </td>
+                        <td className="num">
+                          {students.filter((s) => s.className === c.className && s.section === c.section).length}
+                        </td>
+                        <td>{c.room}</td>
+                        <td className="num">
+                          <button
+                            className={`btn btn-sm ${bad ? "btn-primary" : "btn-outline"}`}
+                            onClick={() => setAssignFor(c)}
+                          >
+                            {bad ? "Assign substitute" : "Change teacher"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
 
       <div className="grid g-2 mt">
@@ -128,6 +185,41 @@ export default function TeachersClasses() {
         </Card>
       </div>
 
+      {assignFor && (
+        <Modal
+          title={`Assign class teacher — ${classLabel(assignFor.className, assignFor.section)}`}
+          onClose={() => setAssignFor(null)}
+          footer={<button className="btn btn-outline" onClick={() => setAssignFor(null)}>Cancel</button>}
+        >
+          <div className="hint" style={{ marginBottom: 6 }}>
+            Picking a teacher updates the class register and sends them a notification:
+            <b> “You have been assigned to {classLabel(assignFor.className, assignFor.section)}.”</b>
+          </div>
+          <div className="small muted" style={{ marginBottom: 4 }}>
+            Current class teacher: {assignFor.classTeacher} · Room {assignFor.room}
+          </div>
+          {teachers
+            .filter((x) => x.status === "Active")
+            .map((x) => (
+              <div className="list-item" key={x.id}>
+                <Person name={x.name} sub={`${x.subject} · ${x.qualification}`} />
+                <div className="right" style={{ marginLeft: "auto" }}>
+                  <button
+                    className="btn btn-soft btn-sm"
+                    disabled={x.name === assignFor.classTeacher}
+                    onClick={() => {
+                      assignClassTeacher(assignFor.id, x.name);
+                      setAssignFor(null);
+                    }}
+                  >
+                    {x.name === assignFor.classTeacher ? "Current" : "Assign"}
+                  </button>
+                </div>
+              </div>
+            ))}
+        </Modal>
+      )}
+
       {t && (
         <Modal title={t.name} onClose={() => setOpen(null)}
           footer={<button className="btn btn-primary" onClick={() => setOpen(null)}>Done</button>}>
@@ -138,6 +230,7 @@ export default function TeachersClasses() {
           <div className="kv"><span className="k">Employee ID</span><span className="v">{t.id}</span></div>
           <div className="kv"><span className="k">Primary subject</span><span className="v">{t.subject}</span></div>
           <div className="kv"><span className="k">Classes</span><span className="v">{t.classes.join(", ")}</span></div>
+          <div className="kv"><span className="k">Class teacher of</span><span className="v">{classTeacherOf(t.name).join(", ") || "—"}</span></div>
           <div className="kv"><span className="k">Experience</span><span className="v">{t.experience} years</span></div>
           <div className="kv"><span className="k">Email</span><span className="v">{t.email}</span></div>
           <div className="kv"><span className="k">Phone</span><span className="v">{t.phone}</span></div>

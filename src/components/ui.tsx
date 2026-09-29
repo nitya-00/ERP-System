@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { initials } from "../data/db";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { initials, inr, schoolStats } from "../data/db";
 
 /* ---------------- Icons (inline SVG set) ---------------- */
 const paths: Record<string, string> = {
@@ -28,6 +28,7 @@ const paths: Record<string, string> = {
   print: "M6 9V3h12v6M6 18H4v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6h-2M8 14h8v7H8v-7Z",
   download: "M12 3v12M7 11l5 5 5-5M4 21h16",
   eye: "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+  eyeOff: "M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10 8 10 8a13.2 13.2 0 0 1-1.67 2.68M6.61 6.61A13.5 13.5 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.39-1.61M14.12 14.12a3 3 0 1 1-4.24-4.24M3 3l18 18",
   trash: "M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13",
   mail: "M3 7.5 12 13l9-5.5M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z",
   phone: "M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z",
@@ -57,6 +58,37 @@ export function Icon({ name, size = 18 }: { name: keyof typeof paths | string; s
 
 /* ---------------- Building blocks ---------------- */
 
+/**
+ * School logo. Point `schoolStats.logo` (or drop a file at `public/logo.png`)
+ * to show the real image — until then the "Logo / Image 1" placeholder is
+ * rendered at the same footprint, so the layout never shifts.
+ */
+export function Logo({ size = 38, block = false }: { size?: number; block?: boolean }) {
+  const [ok, setOk] = useState(true);
+  const src = schoolStats.logo ?? "/logo.png";
+  const cls = `brand-logo${block ? " brand-logo-block" : ""}`;
+  if (ok) {
+    return (
+      <img
+        src={src}
+        alt={`${schoolStats.name} logo`}
+        className={cls}
+        style={
+          block
+            ? { display: "block", width: "100%", objectFit: "cover" }
+            : { width: size, height: size, borderRadius: Math.round(size * 0.29), display: "block", objectFit: "cover" }
+        }
+        onError={() => setOk(false)}
+      />
+    );
+  }
+  return (
+    <div className={`${cls} brand-logo-ph`} role="img" aria-label={`${schoolStats.name} logo`}>
+      {schoolStats.logoPlaceholder}
+    </div>
+  );
+}
+
 export function PageHead({
   title,
   desc,
@@ -77,6 +109,44 @@ export function PageHead({
   );
 }
 
+/* ---------------- Fee-amount privacy ----------------
+   Collection totals are hidden ("XX") until the eye is tapped. */
+type PrivacyState = { hidden: boolean; toggle: () => void };
+const PrivacyCtx = createContext<PrivacyState>({ hidden: true, toggle: () => {} });
+
+export function PrivacyProvider({ children }: { children: ReactNode }) {
+  const [hidden, setHidden] = useState(true);
+  return (
+    <PrivacyCtx.Provider value={{ hidden, toggle: () => setHidden((v) => !v) }}>
+      {children}
+    </PrivacyCtx.Provider>
+  );
+}
+
+export const usePrivacy = () => useContext(PrivacyCtx);
+
+export function PrivacyToggle({ label = true }: { label?: boolean }) {
+  const { hidden, toggle } = usePrivacy();
+  return (
+    <button
+      type="button"
+      className="btn btn-soft btn-sm"
+      onClick={toggle}
+      title={hidden ? "Reveal amounts" : "Hide amounts"}
+      aria-pressed={hidden}
+    >
+      <Icon name={hidden ? "eyeOff" : "eye"} size={15} />
+      {label && (hidden ? "Reveal" : "Hide")}
+    </button>
+  );
+}
+
+/** Rupee amount that renders as "XX" while privacy is on. */
+export function Money({ n }: { n: number }) {
+  const { hidden } = usePrivacy();
+  return <>{hidden ? "XX" : inr(n)}</>;
+}
+
 export function Stat({
   label,
   value,
@@ -84,6 +154,7 @@ export function Stat({
   tone = "bg-primary",
   foot,
   trend,
+  secret,
 }: {
   label: string;
   value: string | number;
@@ -91,7 +162,10 @@ export function Stat({
   tone?: string;
   foot?: string;
   trend?: "up" | "down";
+  secret?: boolean;
 }) {
+  const { hidden, toggle } = usePrivacy();
+  const masked = Boolean(secret && hidden);
   return (
     <div className="stat">
       <div className="top">
@@ -99,8 +173,19 @@ export function Stat({
           <Icon name={icon} size={18} />
         </div>
         <span className="label">{label}</span>
+        {secret && (
+          <button
+            type="button"
+            className="eye-btn"
+            onClick={toggle}
+            title={hidden ? "Reveal amount" : "Hide amount"}
+            aria-label={hidden ? "Reveal amount" : "Hide amount"}
+          >
+            <Icon name={hidden ? "eyeOff" : "eye"} size={16} />
+          </button>
+        )}
       </div>
-      <div className="value">{value}</div>
+      <div className="value">{masked ? "XX" : value}</div>
       {(foot || trend) && (
         <div className="foot">
           {trend && (
@@ -108,7 +193,7 @@ export function Stat({
               {trend === "up" ? "▲" : "▼"}
             </span>
           )}
-          <span>{foot}</span>
+          <span>{masked && foot?.includes("₹") ? "Amount hidden" : foot}</span>
         </div>
       )}
     </div>
@@ -121,15 +206,17 @@ export function Card({
   right,
   children,
   pad = true,
+  className,
 }: {
   title?: string;
   sub?: string;
   right?: ReactNode;
   children: ReactNode;
   pad?: boolean;
+  className?: string;
 }) {
   return (
-    <section className="card">
+    <section className={`card ${className ?? ""}`}>
       {(title || right) && (
         <header className="card-head">
           <div>

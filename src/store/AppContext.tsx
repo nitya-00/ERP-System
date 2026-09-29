@@ -10,6 +10,8 @@ import {
 import {
   applications as seedApps,
   attendance as seedAttendance,
+  classLabel,
+  classSections as seedClasses,
   demoParentChildren,
   demoStudentId,
   demoUsers,
@@ -21,6 +23,7 @@ import {
   type AppNotification,
   type Application,
   type AttendanceRow,
+  type ClassRow,
   type Mark,
   type Notice,
   type Payment,
@@ -31,7 +34,7 @@ import {
 /* ---------------------------------------------------------
    Storage helpers
 --------------------------------------------------------- */
-const KEY = "school-erp-v1";
+const KEY = "school-erp-v3";
 
 type Persisted = {
   role: Role | null;
@@ -39,6 +42,7 @@ type Persisted = {
   notifications: AppNotification[];
   apps: Application[];
   attendance: AttendanceRow[];
+  classes: ClassRow[];
   marks: Mark[];
   payments: Payment[];
   students: Student[];
@@ -50,6 +54,7 @@ const initial: Persisted = {
   notifications: seedNotifications,
   apps: seedApps,
   attendance: seedAttendance,
+  classes: seedClasses,
   marks: seedMarks,
   payments: seedPayments,
   students: seedStudents,
@@ -81,6 +86,7 @@ type Ctx = {
   notifications: AppNotification[];
   apps: Application[];
   attendance: AttendanceRow[];
+  classes: ClassRow[];
   marks: Mark[];
   payments: Payment[];
 
@@ -95,6 +101,7 @@ type Ctx = {
   addStudent: (s: Omit<Student, "id" | "admNo" | "photoClass">) => void;
   decideApplication: (id: string, status: Application["status"]) => void;
   addPayment: (p: Omit<Payment, "id" | "receiptNo">) => void;
+  assignClassTeacher: (classId: string, teacherName: string) => void;
 
   toasts: Toast[];
   toast: (text: string) => void;
@@ -142,6 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notifications: visibleNotifs,
       apps: state.apps,
       attendance: state.attendance,
+      classes: state.classes,
       marks: state.marks,
       payments: state.payments,
 
@@ -257,6 +265,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ],
         }));
         toast("Payment recorded & receipt generated");
+      },
+      assignClassTeacher: (classId, teacherName) => {
+        const row = state.classes.find((c) => c.id === classId);
+        const label = row ? classLabel(row.className, row.section) : classId;
+        patch((s) => ({
+          ...s,
+          classes: s.classes.map((c) =>
+            c.id === classId ? { ...c, classTeacher: teacherName } : c,
+          ),
+          notifications: [
+            {
+              id: `NT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+              title: `You have been assigned to ${label}`,
+              body: `${teacherName} is now the class teacher of ${label}.`,
+              kind: "info",
+              date: new Date().toISOString(),
+              forRoles: ["teacher"],
+              read: false,
+            },
+            ...s.notifications,
+          ],
+        }));
+        toast(`${teacherName} assigned to ${label} · notification sent`);
       },
 
       toasts,

@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useApp } from "../store/AppContext";
 import { demoUsers, schoolStats } from "../data/db";
-import { Icon } from "./ui";
+import { Icon, Logo } from "./ui";
 
 type NavItem = { to: string; label: string; icon: string; badge?: number };
 
@@ -43,11 +43,13 @@ export const NAV: Record<string, { label: string; items: NavItem[] }[]> = {
   ],
   teacher: [
     {
-      label: "My Work",
+      label: "My Teaching",
       items: [
-        { to: "/teacher", label: "My Classes", icon: "home" },
+        { to: "/teacher", label: "Dashboard", icon: "home" },
+        { to: "/teacher/classes", label: "My Classes", icon: "users" },
         { to: "/teacher/attendance", label: "Attendance", icon: "check" },
         { to: "/teacher/marks", label: "Marks", icon: "edit" },
+        { to: "/teacher/timetable", label: "Timetable", icon: "calendar" },
       ],
     },
     {
@@ -129,9 +131,9 @@ export default function Layout({ children, title }: { children: ReactNode; title
       {open && <div className="scrim" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand">
-          <div className="brand-logo">S</div>
+          <Logo block />
           <div>
-            <div className="brand-name">Sunrise ERP</div>
+            <div className="brand-name">{schoolStats.name}</div>
             <div className="brand-sub">{schoolStats.session}</div>
           </div>
         </div>

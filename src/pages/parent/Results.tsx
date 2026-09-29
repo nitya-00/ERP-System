@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { exams, gradeColor, gradeOf, marks as seedMarks } from "../../data/db";
+import { classLabel, exams, gradeColor, gradeOf, marks as seedMarks } from "../../data/db";
 import { Badge, Card, Empty, Icon, PageHead, Stat } from "../../components/ui";
 import { useFamily } from "../../store/family";
 
@@ -80,7 +80,7 @@ export default function ParentResults() {
           <div style={{ marginLeft: "auto", textAlign: "right" }}>
             <div className="small muted">Report card</div>
             <div className="strong" style={{ fontSize: 17 }}>{child?.name}</div>
-            <div className="small muted">{child?.className} – {child?.section} · {child?.admNo}</div>
+            <div className="small muted">{classLabel(child?.className ?? "", child?.section ?? "")} · {child?.admNo}</div>
           </div>
         </div>
       </div>

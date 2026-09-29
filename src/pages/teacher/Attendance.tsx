@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { ATTENDANCE_DATES, classSections, students } from "../../data/db";
+import { ATTENDANCE_DATES, classLabel, todayISO } from "../../data/db";
 import { Badge, Card, Empty, Icon, PageHead, Person, Stat } from "../../components/ui";
 
 type Mark = "Present" | "Absent" | "Late";
 
 export default function TeacherAttendance() {
-  const { attendance, setAttendance } = useApp();
-  const [classId, setClassId] = useState("C10A");
-  const [date, setDate] = useState("2026-09-24");
+  const { attendance, setAttendance, classes, students } = useApp();
+  const [classId, setClassId] = useState(classes[0]?.id ?? "");
+  const [date, setDate] = useState(todayISO());
   const [draft, setDraft] = useState<Record<string, Mark> | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const cls = classSections.find((c) => c.id === classId) ?? classSections[0];
+  const cls = classes.find((c) => c.id === classId) ?? classes[0];
   const roster = useMemo(
     () =>
       students
@@ -73,7 +73,7 @@ export default function TeacherAttendance() {
         <Stat label="Present" value={counts.Present} icon="check" tone="bg-success" foot={`${Math.round((counts.Present / (roster.length || 1)) * 100)}% of class`} trend="up" />
         <Stat label="Absent" value={counts.Absent} icon="close" tone="bg-danger" foot="Parents will be alerted" />
         <Stat label="Late" value={counts.Late} icon="clock" tone="bg-warning" foot="Arrived after 8:30 AM" />
-        <Stat label="Class Strength" value={roster.length} icon="users" tone="bg-primary" foot={`${cls.className} – ${cls.section}`} />
+        <Stat label="Class Strength" value={roster.length} icon="users" tone="bg-primary" foot={classLabel(cls.className, cls.section)} />
       </div>
 
       <Card
@@ -83,12 +83,12 @@ export default function TeacherAttendance() {
         right={
           <div className="flex" style={{ gap: 9 }}>
             <select className="select" style={{ width: 150 }} value={classId} onChange={(e) => { setClassId(e.target.value); setDraft(null); }}>
-              {classSections.map((c) => (
-                <option key={c.id} value={c.id}>{c.className} – {c.section}</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>{classLabel(c.className, c.section)}</option>
               ))}
             </select>
             <select className="select" style={{ width: 150 }} value={date} onChange={(e) => { setDate(e.target.value); setDraft(null); }}>
-              {[...ATTENDANCE_DATES, "2026-09-25"].map((d) => (
+              {[...ATTENDANCE_DATES].reverse().map((d) => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
@@ -148,7 +148,7 @@ export default function TeacherAttendance() {
         </div>
       </Card>
 
-      <div className="mt"><Card title="Monthly summary" sub={`${cls.className} – ${cls.section} · September 2026`}>
+      <div className="mt"><Card title="Monthly summary" sub={`${classLabel(cls.className, cls.section)} · ${new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`}>
         <div className="hbar">
           {roster.slice(0, 10).map((s) => {
             const rows = attendance.filter((a) => a.studentId === s.id);

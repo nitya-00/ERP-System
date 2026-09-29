@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { feeStructure, fmtDate, inr, payments as seedPayments, type Payment } from "../../data/db";
-import { Badge, Card, Empty, Icon, Modal, PageHead, Person, Stat, statusTone } from "../../components/ui";
+import { feeStructure, fmtDate, inr, payments as seedPayments, schoolStats, todayISO, type Payment } from "../../data/db";
+import { Badge, Card, Empty, Icon, Modal, Money, PageHead, Person, PrivacyProvider, PrivacyToggle, Stat, statusTone } from "../../components/ui";
 
 const tabs = ["Overview", "Fee Structure", "Payments", "Pending"] as const;
 
@@ -35,7 +35,7 @@ export default function Fees() {
   const rcpt = payments.find((p) => p.id === receipt);
 
   return (
-    <>
+    <PrivacyProvider>
       <PageHead
         title="Fees"
         desc="Fee structure, collections, pending dues and downloadable receipts."
@@ -52,9 +52,9 @@ export default function Fees() {
       />
 
       <div className="grid g-4">
-        <Stat label="Total Collected" value={inr(collected)} icon="wallet" tone="bg-success" foot={`${rate}% of billed amount`} trend="up" />
-        <Stat label="Pending" value={inr(pending)} icon="clock" tone="bg-warning" foot={`${payments.filter((p) => p.status === "Pending").length} receipts due`} />
-        <Stat label="Overdue" value={inr(overdue)} icon="bell" tone="bg-danger" foot={`${payments.filter((p) => p.status === "Overdue").length} students` } trend="down" />
+        <Stat label="Total Collected" value={inr(collected)} icon="wallet" tone="bg-success" foot={`${rate}% of billed amount`} trend="up" secret />
+        <Stat label="Pending" value={inr(pending)} icon="clock" tone="bg-warning" foot={`${payments.filter((p) => p.status === "Pending").length} receipts due`} secret />
+        <Stat label="Overdue" value={inr(overdue)} icon="bell" tone="bg-danger" foot={`${payments.filter((p) => p.status === "Overdue").length} students` } trend="down" secret />
         <Stat label="Receipts Issued" value={payments.length} icon="file" tone="bg-primary" foot="This session" />
       </div>
 
@@ -151,13 +151,13 @@ export default function Fees() {
       )}
 
       <div className="grid g-3 mt">
-        <Card title="Collection by mode">
+        <Card title="Collection by mode" right={<PrivacyToggle label={false} />}>
           <div className="hbar">
             {["UPI", "Card", "Cash", "Bank Transfer"].map((m) => {
               const v = seedPayments.filter((p) => p.mode === m && p.status === "Paid").reduce((a, b) => a + b.amount, 0);
               return (
                 <div className="row" key={m}>
-                  <div className="top"><span>{m}</span><b>{inr(v)}</b></div>
+                  <div className="top"><span>{m}</span><b><Money n={v} /></b></div>
                   <div className="progress"><i style={{ width: `${Math.min(100, (v / 120000) * 100)}%` }} /></div>
                 </div>
               );
@@ -165,13 +165,13 @@ export default function Fees() {
           </div>
         </Card>
 
-        <Card title="Class-wise dues">
+        <Card title="Class-wise dues" right={<PrivacyToggle label={false} />}>
           <div className="hbar">
-            {["Class 10", "Class 9", "Class 8", "Class 7", "Class 6"].map((c, i) => {
+            {["Eighth", "Seventh", "Sixth", "Fifth", "Fourth"].map((c, i) => {
               const amt = [48000, 36000, 27500, 18000, 12500][i];
               return (
                 <div className="row" key={c}>
-                  <div className="top"><span>{c}</span><b>{inr(amt)}</b></div>
+                  <div className="top"><span>{c}</span><b><Money n={amt} /></b></div>
                   <div className="progress"><i style={{ width: `${(amt / 50000) * 100}%`, background: "var(--warning)" }} /></div>
                 </div>
               );
@@ -202,7 +202,7 @@ export default function Fees() {
 
       {rcpt && <ReceiptModal p={rcpt} onClose={() => setReceipt(null)} />}
       {payOpen && <RecordPayment onClose={() => setPayOpen(false)} onDone={addPayment} />}
-    </>
+    </PrivacyProvider>
   );
 }
 
@@ -224,7 +224,7 @@ function ReceiptModal({ p, onClose }: { p: Payment; onClose: () => void }) {
     >
       <div className="flex" style={{ justifyContent: "space-between", marginBottom: 8 }}>
         <div>
-          <div className="strong" style={{ fontSize: 17 }}>Sunrise Public School</div>
+          <div className="strong" style={{ fontSize: 17 }}>{schoolStats.name}</div>
           <div className="small muted">Sector 21, Rohini, New Delhi — 110086</div>
         </div>
         <Badge tone={statusTone(p.status)}>{p.status}</Badge>
@@ -271,7 +271,7 @@ function RecordPayment({
               onDone({
                 studentId,
                 amount: Number(amount) || 0,
-                date: "2026-09-25",
+                date: todayISO(),
                 mode,
                 head,
                 status: "Paid",

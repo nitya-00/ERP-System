@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../store/AppContext";
 import { demoUsers, schoolStats, type Role } from "../data/db";
-import { Icon } from "../components/ui";
+import { Icon, Logo } from "../components/ui";
 
 const roles: { id: Role; emoji: string; label: string }[] = [
   { id: "admin", emoji: "👨‍💼", label: "Admin" },
@@ -62,9 +62,9 @@ export default function Login() {
     <div className="login-wrap">
       <section className="login-hero">
         <div className="flex">
-          <div className="brand-logo" style={{ width: 44, height: 44, fontSize: 19 }}>S</div>
+          <Logo size={44} />
           <div>
-            <div style={{ fontWeight: 750, fontSize: 17 }}>{schoolStats.name}</div>
+            <div style={{ fontWeight: 750, fontSize: 15.5, lineHeight: 1.25 }}>{schoolStats.name}</div>
             <div style={{ fontSize: 12.5, color: "#9aa5cc", letterSpacing: ".06em" }}>
               SCHOOL ERP · {schoolStats.session}
             </div>

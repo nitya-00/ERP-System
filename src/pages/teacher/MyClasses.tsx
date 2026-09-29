@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../../store/AppContext";
-import { classSections, demoUsers, fmtDate, teachers } from "../../data/db";
+import { classLabel, demoUsers, exams, fmtDate, strength, teachers, todayISO } from "../../data/db";
 import { Badge, Card, Icon, PageHead, Person, Stat } from "../../components/ui";
 
 const timetable = [
@@ -14,13 +14,17 @@ const timetable = [
 const periods = ["8:00 – 8:45", "8:45 – 9:30", "9:35 – 10:20", "10:20 – 11:05", "11:20 – 12:05"];
 
 export default function TeacherClasses() {
-  const { students, attendance } = useApp();
+  const { students, attendance, classes } = useApp();
   const me = teachers.find((t) => t.email === demoUsers.teacher.email) ?? teachers[0];
-  const myClasses = classSections.filter((c) => me.classes.includes(c.className));
-  const today = "2026-09-24";
+  const myClasses = classes.filter((c) => me.classes.includes(c.className));
+  const home = myClasses[0] ?? classes[0];
+  const classTeacherOfMe = classes.filter((c) => c.classTeacher === me.name);
+  const today = todayISO();
   const marked = students.filter((s) => attendance.some((a) => a.studentId === s.id && a.date === today));
 
-  const roster = students.filter((s) => s.className === "Class 10");
+  const roster = home
+    ? students.filter((s) => s.className === home.className && s.section === home.section)
+    : [];
   const presentToday = marked.filter((s) =>
     attendance.find((a) => a.studentId === s.id && a.date === today)?.status === "Present",
   ).length;
@@ -44,8 +48,8 @@ export default function TeacherClasses() {
 
       <div className="grid g-4">
         <Stat label="Classes Assigned" value={myClasses.length} icon="book" tone="bg-primary" foot={myClasses.map((c) => c.className).join(", ")} />
-        <Stat label="My Students" value={myClasses.reduce((a, c) => a + c.students, 0)} icon="users" tone="bg-violet" foot="Across all sections" />
-        <Stat label="Present Today" value={`${presentToday}/${roster.length}`} icon="check" tone="bg-success" foot="Class 10 · 24 Sep" trend="up" />
+        <Stat label="My Students" value={myClasses.reduce((a, c) => a + strength(students, c.className, c.section), 0)} icon="users" tone="bg-violet" foot="Across all sections" />
+        <Stat label="Present Today" value={`${presentToday}/${roster.length}`} icon="check" tone="bg-success" foot={`${home ? classLabel(home.className, home.section) : "—"} · ${fmtDate(today)}`} trend="up" />
         <Stat label="Periods This Week" value={22} icon="clock" tone="bg-info" foot="7 free periods" />
       </div>
 
@@ -90,15 +94,15 @@ export default function TeacherClasses() {
             </Link>
           </div>
           <div className="divider" />
-          <div className="kv"><span className="k">Class teacher of</span><span className="v">Class 9 – A</span></div>
+          <div className="kv"><span className="k">Class teacher of</span><span className="v">{classTeacherOfMe.map((c) => classLabel(c.className, c.section)).join(", ") || "—"}</span></div>
           <div className="kv"><span className="k">Subjects</span><span className="v">{me.subject}, Mathematics</span></div>
           <div className="kv"><span className="k">Experience</span><span className="v">{me.experience} years</span></div>
-          <div className="kv"><span className="k">Next exam</span><span className="v">Half Yearly · 28 Sep</span></div>
+          <div className="kv"><span className="k">Next exam</span><span className="v">{(() => { const e = exams.filter((x) => x.status === "Upcoming").sort((a, b) => (a.from < b.from ? -1 : 1))[0]; return e ? `${e.name} · ${fmtDate(e.from)}` : "—"; })()}</span></div>
         </Card>
       </div>
 
       <div className="grid g-2 mt">
-        <Card title="Class 10 – A roster" sub={`${roster.length} students`} pad={false}
+        <Card title={`${home ? classLabel(home.className, home.section) : "Class"} roster`} sub={`${roster.length} students`} pad={false}
           right={<Link to="/teacher/attendance" className="btn btn-soft btn-sm">Attendance</Link>}>
           <div className="table-wrap" style={{ maxHeight: 430, overflowY: "auto" }}>
             <table className="table">
@@ -129,11 +133,11 @@ export default function TeacherClasses() {
           {myClasses.map((c) => (
             <div className="list-item" key={c.id}>
               <div className="body">
-                <div className="ttl">{c.className} – {c.section}</div>
+                <div className="ttl">{classLabel(c.className, c.section)}</div>
                 <div className="txt">{c.subjects.join(" · ")}</div>
                 <div className="when">
                   <Badge tone="b-gray" plain>{c.room}</Badge>
-                  <span>{c.students} students</span>
+                  <span>{strength(students, c.className, c.section)} students</span>
                   <span>·</span>
                   <span>Class teacher: {c.classTeacher}</span>
                 </div>

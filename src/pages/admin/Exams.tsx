@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { exams, gradeColor, gradeOf, marks as seedMarks, students } from "../../data/db";
+import { exams, gradeColor, gradeOf, marks as seedMarks } from "../../data/db";
 import { Badge, Card, Empty, Icon, PageHead, Person, Stat, statusTone } from "../../components/ui";
 
 export default function Exams() {
-  const { marks, toast } = useApp();
+  const { marks, toast, students } = useApp();
   const [examId, setExamId] = useState("EX-01");
   const [q, setQ] = useState("");
 
@@ -28,6 +28,24 @@ export default function Exams() {
 
   const avg = rows.length ? Math.round(rows.reduce((a, b) => a + b.pct, 0) / rows.length) : 0;
   const pass = rows.filter((r) => r.pct >= 33).length;
+
+  const appearing = (className: string) =>
+    students.filter((s) => s.className === className).length;
+
+  const passedIn = (examId: string) => {
+    const per = new Map<string, { got: number; max: number }>();
+    marks
+      .filter((m) => m.examId === examId)
+      .forEach((m) => {
+        const c = per.get(m.studentId) ?? { got: 0, max: 0 };
+        c.got += m.marks;
+        c.max += m.max;
+        per.set(m.studentId, c);
+      });
+    const rows2 = [...per.values()];
+    if (!rows2.length) return null;
+    return rows2.filter((r) => r.max > 0 && r.got / r.max >= 0.33).length;
+  };
 
   const overall = useMemo(() => {
     const done = exams.filter((e) => e.status !== "Upcoming");
@@ -69,7 +87,7 @@ export default function Exams() {
         <Stat label="Pass Rate" value={`${rows.length ? Math.round((pass / rows.length) * 100) : 0}%`} icon="star" tone="bg-violet" foot={`${pass} of ${rows.length} students`} />
       </div>
 
-      <Card title="Examination Schedule" sub="All exams for the current session" pad={false}>
+      <Card title="Examination Schedule" sub="All exams for the current session · appearing, passed and status" pad={false}>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -78,7 +96,8 @@ export default function Exams() {
                 <th>Term</th>
                 <th>Class</th>
                 <th>Dates</th>
-                <th className="num">Max Marks</th>
+                <th className="num">Appearing</th>
+                <th className="num">Passed</th>
                 <th>Status</th>
                 <th className="num">Results</th>
               </tr>
@@ -90,7 +109,8 @@ export default function Exams() {
                   <td>{e.term}</td>
                   <td>{e.className}</td>
                   <td className="nowrap">{e.from} → {e.to}</td>
-                  <td className="num">{e.maxMarks}</td>
+                  <td className="num">{appearing(e.className) || "—"}</td>
+                  <td className="num">{passedIn(e.id) ?? "—"}</td>
                   <td><Badge tone={statusTone(e.status)}>{e.status}</Badge></td>
                   <td className="num">
                     <button

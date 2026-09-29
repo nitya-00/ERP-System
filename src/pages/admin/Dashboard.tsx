@@ -1,37 +1,32 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../../store/AppContext";
 import {
-  classSections,
   fmtDateTime,
   inr,
-  monthlyAttendance,
   monthlyCollection,
-  relTime,
   schoolStats,
+  strength,
   teachers,
+  todayLong,
 } from "../../data/db";
-import { Bars, Badge, Card, Donut, Icon, PageHead, Person, ProgressRow, Stat, statusTone } from "../../components/ui";
+import { Badge, Card, Icon, Money, PageHead, Person, PrivacyProvider, PrivacyToggle, Stat, Bars, statusTone } from "../../components/ui";
 
 export default function AdminDashboard() {
-  const { students, payments, attendance, notices, apps } = useApp();
+  const { students, payments, notices, classes } = useApp();
 
   const active = students.filter((s) => s.status === "Active").length;
   const paid = payments.filter((p) => p.status === "Paid").reduce((a, b) => a + b.amount, 0);
   const due = payments.filter((p) => p.status !== "Paid").reduce((a, b) => a + b.amount, 0);
-  const today = "2026-09-24";
-  const todays = attendance.filter((a) => a.date === today);
-  const present = todays.filter((a) => a.status === "Present").length;
-  const attPct = todays.length ? Math.round((present / todays.length) * 100) : 0;
-  const newApps = apps.filter((a) => a.status === "New").length;
+  const rate = Math.round((paid / (paid + due || 1)) * 100);
 
-  const genderM = students.filter((s) => s.gender === "Male").length;
-  const genderF = students.length - genderM;
+  const onDuty = teachers.filter((t) => t.status === "Active").length;
+  const dutyPct = Math.round((onDuty / teachers.length) * 100);
 
   return (
-    <>
+    <PrivacyProvider>
       <PageHead
         title="Admin Dashboard"
-        desc={`${schoolStats.name} · Session ${schoolStats.session} · Friday, 25 September 2026`}
+        desc={`${schoolStats.name} · Session ${schoolStats.session} · ${todayLong()}`}
         actions={
           <>
             <Link to="/admin/admissions" className="btn btn-outline">
@@ -45,105 +40,73 @@ export default function AdminDashboard() {
       />
 
       <div className="grid g-4">
-        <Stat label="Total Students" value={students.length} icon="users" tone="bg-primary" foot={`${active} active enrolled`} trend="up" />
-        <Stat label="Total Teachers" value={teachers.length} icon="cap" tone="bg-violet" foot={`${teachers.filter((t) => t.status === "Active").length} on duty`} />
-        <Stat label="Attendance Today" value={`${attPct}%`} icon="check" tone="bg-success" foot={`${present} of ${todays.length} present`} trend={attPct > 90 ? "up" : "down"} />
-        <Stat label="Fees Collected" value={inr(paid)} icon="wallet" tone="bg-info" foot={`${inr(due)} still pending`} trend="up" />
+        <Stat
+          label="Total Students"
+          value={students.length}
+          icon="users"
+          tone="bg-primary"
+          foot={`${active} active enrolled`}
+          trend="up"
+        />
+        <Stat
+          label="Total Teachers"
+          value={teachers.length}
+          icon="cap"
+          tone="bg-violet"
+          foot={`${onDuty} on duty`}
+        />
+        <Stat
+          label="Teacher Attendance Today"
+          value={`${dutyPct}%`}
+          icon="check"
+          tone="bg-success"
+          foot={`${onDuty} of ${teachers.length} on duty`}
+          trend={dutyPct >= 90 ? "up" : "down"}
+        />
+        <Stat
+          label="Fees Collected"
+          value={inr(paid)}
+          icon="wallet"
+          tone="bg-info"
+          foot={`${rate}% of billed amount`}
+          trend="up"
+          secret
+        />
       </div>
 
       <div className="grid g-23 mt">
         <Card
           title="Fee Collection — this session"
           sub="Amounts in ₹ thousands, month-wise"
-          right={<Link to="/admin/fees" className="btn btn-outline btn-sm">Open Fees</Link>}
+          right={
+            <div className="flex" style={{ gap: 8 }}>
+              <PrivacyToggle label={false} />
+              <Link to="/admin/fees" className="btn btn-outline btn-sm">Open Fees</Link>
+            </div>
+          }
         >
           <Bars data={monthlyCollection.map((m) => ({ m: m.m, v: m.v }))} />
           <div className="flex flex-wrap mt">
             <div className="grow">
               <div className="small muted">Total collected</div>
-              <div className="strong" style={{ fontSize: 20 }}>{inr(paid)}</div>
+              <div className="strong" style={{ fontSize: 20 }}><Money n={paid} /></div>
             </div>
             <div className="grow">
               <div className="small muted">Outstanding</div>
-              <div className="strong" style={{ fontSize: 20, color: "var(--danger)" }}>{inr(due)}</div>
+              <div className="strong" style={{ fontSize: 20, color: "var(--danger)" }}><Money n={due} /></div>
             </div>
             <div className="grow">
               <div className="small muted">Collection rate</div>
-              <div className="strong" style={{ fontSize: 20, color: "var(--success)" }}>
-                {Math.round((paid / (paid + due || 1)) * 100)}%
-              </div>
+              <div className="strong" style={{ fontSize: 20, color: "var(--success)" }}>{rate}%</div>
             </div>
           </div>
         </Card>
 
-        <Card title="Student Strength" sub="By gender across all classes">
-          <Donut
-            parts={[
-              { label: "Boys", value: genderM, color: "#6366f1" },
-              { label: "Girls", value: genderF, color: "#ec4899" },
-            ]}
-          />
-          <div className="divider" />
-          <div className="hbar">
-            <ProgressRow label="Boys" value={genderM} max={students.length} suffix="" />
-            <ProgressRow label="Girls" value={genderF} max={students.length} suffix="" />
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid g-23 mt">
         <Card
-          title="Attendance Trend"
-          sub="School-wide monthly average"
-          right={<Badge tone="b-success">Healthy</Badge>}
+          title="Latest Notices"
+          sub="School communication feed"
+          right={<Link to="/admin/notices" className="btn btn-outline btn-sm">Open</Link>}
         >
-          <Bars data={monthlyAttendance.map((m) => ({ m: m.m, v: m.present }))} tone="alt" suffix="%" />
-        </Card>
-
-        <Card
-          title="Pending Admissions"
-          sub={`${newApps} applications awaiting action`}
-          right={<Link to="/admin/admissions" className="btn btn-soft btn-sm">Review all</Link>}
-        >
-          {apps.slice(0, 4).map((a) => (
-            <div className="list-item" key={a.id}>
-              <Person name={a.name} sub={`${a.applyingFor} · ${a.id}`} />
-              <div className="right">
-                <Badge tone={statusTone(a.status)}>{a.status}</Badge>
-                <div className="small muted" style={{ marginTop: 6 }}>{relTime(a.date + "T10:00:00")}</div>
-              </div>
-            </div>
-          ))}
-        </Card>
-      </div>
-
-      <div className="grid g-32 mt">
-        <Card title="Classes & Sections" sub="Class teacher allocation" right={<Link to="/admin/teachers" className="btn btn-outline btn-sm">Manage</Link>} pad={false}>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Class</th>
-                  <th>Class Teacher</th>
-                  <th className="num">Students</th>
-                  <th>Room</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classSections.slice(0, 6).map((c) => (
-                  <tr key={c.id}>
-                    <td className="strong">{c.className} – {c.section}</td>
-                    <td>{c.classTeacher}</td>
-                    <td className="num">{c.students}</td>
-                    <td><Badge tone="b-gray" plain>{c.room}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        <Card title="Latest Notices" sub="School communication feed" right={<Link to="/admin/notices" className="btn btn-outline btn-sm">Open</Link>}>
           {notices.slice(0, 4).map((n) => (
             <div className="list-item" key={n.id}>
               <span className="unread-dot" />
@@ -161,6 +124,53 @@ export default function AdminDashboard() {
           {notices.length === 0 && <div className="muted small">No notices yet.</div>}
         </Card>
       </div>
-    </>
+
+      <div className="mt">
+        <Card
+          title="Classes & Sections"
+          sub={`${classes.length} class-sections · strength and class teacher for each`}
+          right={
+            <Link to="/admin/teachers" className="btn btn-outline btn-sm">Manage teachers</Link>
+          }
+          pad={false}
+        >
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Section</th>
+                  <th className="num">Students</th>
+                  <th>Class Teacher</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((c) => (
+                  <tr key={c.id}>
+                    <td className="strong">{c.className}</td>
+                    <td>
+                      <Badge tone="b-primary" plain>{c.section || "—"}</Badge>
+                    </td>
+                    <td className="num strong">
+                      {strength(students, c.className, c.section)}
+                    </td>
+                    <td>
+                      <Person name={c.classTeacher} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div
+            className="hint"
+            style={{ padding: "12px 20px", borderTop: "1px solid var(--border)" }}
+          >
+            {classes.length} sections · {students.length} students enrolled · attendance is
+            tracked inside each class register.
+          </div>
+        </Card>
+      </div>
+    </PrivacyProvider>
   );
 }

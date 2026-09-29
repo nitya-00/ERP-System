@@ -2,15 +2,14 @@ import { useState } from "react";
 import { useApp } from "../../store/AppContext";
 import {
   attendance,
-  classSections,
   feeStructure,
   inr,
   monthlyAttendance,
   monthlyCollection,
   payments,
-  students,
+  todayISO,
 } from "../../data/db";
-import { Bars, Badge, Card, Donut, Icon, PageHead, Stat } from "../../components/ui";
+import { Bars, Badge, Card, Donut, Icon, PageHead, PrivacyProvider, PrivacyToggle, Stat } from "../../components/ui";
 
 const reports = [
   { id: "attendance", icon: "✅", title: "Attendance Report", desc: "Daily, monthly and class-wise attendance with defaulters list." },
@@ -20,10 +19,10 @@ const reports = [
 ];
 
 export default function Reports() {
-  const { toast, notices } = useApp();
+  const { toast, notices, students, classes } = useApp();
   const [active, setActive] = useState("attendance");
 
-  const today = "2026-09-24";
+  const today = todayISO();
   const todays = attendance.filter((a) => a.date === today);
   const present = todays.filter((a) => a.status === "Present").length;
   const absent = todays.filter((a) => a.status === "Absent").length;
@@ -43,14 +42,17 @@ export default function Reports() {
     .slice(0, 8);
 
   return (
-    <>
+    <PrivacyProvider>
       <PageHead
         title="Reports"
         desc="Generate, preview and export operational reports for the management."
         actions={
-          <button className="btn btn-primary" onClick={() => toast("Report queued — download will start shortly")}>
-            <Icon name="download" size={16} /> Export current report
-          </button>
+          <>
+            {active === "fees" && <PrivacyToggle />}
+            <button className="btn btn-primary" onClick={() => toast("Report queued — download will start shortly")}>
+              <Icon name="download" size={16} /> Export current report
+            </button>
+          </>
         }
       />
 
@@ -135,8 +137,8 @@ export default function Reports() {
       {active === "fees" && (
         <>
           <div className="grid g-4 mt">
-            <Stat label="Collected" value={inr(collected)} icon="wallet" tone="bg-success" foot="Session 2026-27" trend="up" />
-            <Stat label="Outstanding" value={inr(dues)} icon="clock" tone="bg-warning" foot="Across all classes" />
+            <Stat label="Collected" value={inr(collected)} icon="wallet" tone="bg-success" foot="Session 2026-27" trend="up" secret />
+            <Stat label="Outstanding" value={inr(dues)} icon="clock" tone="bg-warning" foot="Across all classes" secret />
             <Stat label="Collection Rate" value={`${Math.round((collected / (collected + dues || 1)) * 100)}%`} icon="trend" tone="bg-info" foot="Target 95%" />
             <Stat label="Receipts" value={payments.length} icon="file" tone="bg-primary" foot="Issued this session" />
           </div>
@@ -164,14 +166,17 @@ export default function Reports() {
             <Stat label="Total Enrolment" value={students.length} icon="users" tone="bg-primary" foot="All classes" trend="up" />
             <Stat label="Boys" value={students.filter((s) => s.gender === "Male").length} icon="users" tone="bg-info" foot="52% of strength" />
             <Stat label="Girls" value={students.filter((s) => s.gender === "Female").length} icon="users" tone="bg-violet" foot="48% of strength" />
-            <Stat label="Classes Running" value={classSections.length} icon="book" tone="bg-success" foot="Primary + secondary" />
+            <Stat label="Classes Running" value={classes.length} icon="book" tone="bg-success" foot="Primary + secondary" />
           </div>
           <div className="mt"><Card title="Class-wise enrolment" sub="Strength per class section">
             <div className="hbar">
-              {classSections.map((c) => (
+              {classes.map((c) => (
                 <div className="row" key={c.id}>
-                  <div className="top"><span>{c.className} – {c.section}</span><b>{c.students} students</b></div>
-                  <div className="progress"><i style={{ width: `${(c.students / 40) * 100}%` }} /></div>
+                  <div className="top">
+                    <span>{c.className}{c.section ? ` – ${c.section}` : ""}</span>
+                    <b>{students.filter((s) => s.className === c.className && s.section === c.section).length} students</b>
+                  </div>
+                  <div className="progress"><i style={{ width: `${(students.filter((s) => s.className === c.className && s.section === c.section).length / 30) * 100}%` }} /></div>
                 </div>
               ))}
             </div>
@@ -206,6 +211,6 @@ export default function Reports() {
           </div>
         </Card>
       )}
-    </>
+    </PrivacyProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { CLASSES, SECTIONS, fmtDate, initials } from "../../data/db";
+import { CLASSES, fmtDate, initials, sectionOptions, todayISO } from "../../data/db";
 import { Avatar, Badge, Card, Empty, Icon, Modal, PageHead, Person, Stat, statusTone } from "../../components/ui";
 
 const filters = ["All", "New", "Under Review", "Approved", "Rejected"] as const;
@@ -86,8 +86,9 @@ export default function Admissions() {
                 <th>Applicant</th>
                 <th>Applying For</th>
                 <th>Parent / Guardian</th>
+                <th>Contact Number</th>
                 <th>Previous School</th>
-                <th>Applied</th>
+                <th>Applied On</th>
                 <th>Status</th>
                 <th className="num">Action</th>
               </tr>
@@ -99,10 +100,8 @@ export default function Admissions() {
                     <Person name={a.name} sub={a.id} />
                   </td>
                   <td className="strong">{a.applyingFor}</td>
-                  <td>
-                    {a.parentName}
-                    <div className="small muted">{a.parentPhone}</div>
-                  </td>
+                  <td>{a.parentName}</td>
+                  <td className="nowrap">{a.parentPhone}</td>
                   <td>{a.prevSchool}</td>
                   <td className="nowrap">{fmtDate(a.date)}</td>
                   <td>
@@ -150,7 +149,7 @@ export default function Admissions() {
                     addStudent({
                       name: detail.name,
                       className: detail.applyingFor.split(" - ")[0],
-                      section: (detail.applyingFor.split(" - ")[1] ?? "A").trim(),
+                      section: (detail.applyingFor.split(" - ")[1] ?? "").trim(),
                       roll: 1,
                       gender: "Female",
                       dob: "2018-05-14",
@@ -160,7 +159,7 @@ export default function Admissions() {
                       parentName: detail.parentName,
                       parentPhone: detail.parentPhone,
                       parentEmail: "parent@example.com",
-                      admissionDate: "2026-09-25",
+                      admissionDate: todayISO(),
                       status: "Active",
                     });
                     decideApplication(detail.id, "Approved");
@@ -201,7 +200,7 @@ function NewAdmissionModal({ onClose }: { onClose: () => void }) {
   const { addStudent } = useApp();
   const [f, setF] = useState({
     name: "",
-    className: "Class 1",
+    className: "First",
     section: "A",
     gender: "Male" as "Male" | "Female",
     dob: "",
@@ -211,7 +210,7 @@ function NewAdmissionModal({ onClose }: { onClose: () => void }) {
     address: "",
     bloodGroup: "O+",
     phone: "",
-    admissionDate: "2026-09-25",
+    admissionDate: todayISO(),
     status: "Active" as "Active" | "Pending" | "Inactive",
   });
 
@@ -251,14 +250,26 @@ function NewAdmissionModal({ onClose }: { onClose: () => void }) {
       <div className="form-row">
         <div className="field">
           <label className="label">Class</label>
-          <select className="select" value={f.className} onChange={set("className")}>
+          <select
+            className="select"
+            value={f.className}
+            onChange={(e) => {
+              const cn = e.target.value;
+              setF((prev) => ({ ...prev, className: cn, section: sectionOptions(cn)[0] ?? "" }));
+            }}
+          >
             {CLASSES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </div>
         <div className="field">
           <label className="label">Section</label>
           <select className="select" value={f.section} onChange={set("section")}>
-            {SECTIONS.map((c) => <option key={c}>{c}</option>)}
+            {(sectionOptions(f.className).length
+              ? sectionOptions(f.className)
+              : [""]
+            ).map((c) => (
+              <option key={c || "none"} value={c}>{c || "No sections"}</option>
+            ))}
           </select>
         </div>
       </div>

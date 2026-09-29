@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { useApp } from "../store/AppContext";
 import {
   CLASSES,
-  SECTIONS,
   fmtDateTime,
+  sectionOptions,
   relTime,
   type Audience,
   type Role,
@@ -112,7 +112,7 @@ function ComposeModal({
     "In view of the heavy rainfall warning issued by the IMD, the school will remain closed tomorrow for all classes. All pending exams stand postponed. Stay safe.",
   );
   const [audience, setAudience] = useState<Audience>("Entire School");
-  const [cls, setCls] = useState("Class 10");
+  const [cls, setCls] = useState("Eighth");
   const [sec, setSec] = useState("A");
   const [priority, setPriority] = useState<"Urgent" | "Important" | "Normal">("Urgent");
   const [push, setPush] = useState(true);
@@ -186,8 +186,14 @@ function ComposeModal({
           {audience === "Section" && (
             <div className="field">
               <label className="label">Section</label>
-              <select className="select" value={sec} onChange={(e) => setSec(e.target.value)}>
-                {SECTIONS.map((c) => <option key={c}>{c}</option>)}
+              <select
+                className="select"
+                value={sec}
+                onChange={(e) => setSec(e.target.value)}
+              >
+                {(sectionOptions(cls).length ? sectionOptions(cls) : [""]).map((c) => (
+                  <option key={c || "none"} value={c}>{c || "No sections"}</option>
+                ))}
               </select>
             </div>
           )}

@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../../store/AppContext";
-import { demoStudentId, exams, fmtDate, gradeColor, gradeOf, inr, payments, attendance, teachers, classSections } from "../../data/db";
+import { classLabel, demoStudentId, exams, fmtDate, gradeColor, gradeOf, inr, payments, attendance, teachers } from "../../data/db";
 import { Avatar, Badge, Card, Icon, PageHead, Person, Stat, statusTone } from "../../components/ui";
 
 export default function StudentHome() {
-  const { students, marks, notices } = useApp();
+  const { students, marks, notices, classes } = useApp();
   const me = students.find((s) => s.id === demoStudentId) ?? students[0];
 
   const att = attendance.filter((a) => a.studentId === me?.id);
@@ -19,15 +19,18 @@ export default function StudentHome() {
     .filter((p) => p.studentId === me?.id && p.status !== "Paid")
     .reduce((a, b) => a + b.amount, 0);
 
-  const cls = classSections.find((c) => c.className === me?.className && c.section === me?.section);
+  const cls = classes.find((c) => c.className === me?.className && c.section === me?.section);
 
   const subjects = ["Mathematics", "Science", "English", "Social Science", "Computer Science", "Hindi"];
+  const nextExam = exams
+    .filter((e) => e.status === "Upcoming")
+    .sort((a, b) => (a.from < b.from ? -1 : 1))[0];
 
   return (
     <>
       <PageHead
         title="My Dashboard"
-        desc={`${me?.name} · ${me?.className} – ${me?.section} · Roll ${me?.roll} · Session 2026-27`}
+        desc={`${me?.name} · ${classLabel(me?.className ?? "", me?.section ?? "")} · Roll ${me?.roll} · Session 2026-27`}
         actions={
           <>
             <Link to="/student/results" className="btn btn-outline"><Icon name="file" size={16} /> My results</Link>
@@ -40,7 +43,7 @@ export default function StudentHome() {
         <Stat label="Attendance" value={`${pct}%`} icon="check" tone={pct >= 85 ? "bg-success" : "bg-warning"} foot={`${present} of ${att.length} days`} trend={pct >= 85 ? "up" : "down"} />
         <Stat label="Academic Average" value={`${avg}%`} icon="chart" tone="bg-primary" foot={`Grade ${gradeOf(avg)}`} trend="up" />
         <Stat label="Fees Due" value={inr(due)} icon="wallet" tone={due ? "bg-danger" : "bg-success"} foot={due ? "Payable by 30 Sep" : "All clear"} />
-        <Stat label="Class Rank" value="#4" icon="star" tone="bg-violet" foot={`${me?.className} – ${me?.section}`} />
+        <Stat label="Class Rank" value="#4" icon="star" tone="bg-violet" foot={classLabel(me?.className ?? "", me?.section ?? "")} />
       </div>
 
       <div className="grid g-23 mt">
@@ -69,16 +72,19 @@ export default function StudentHome() {
                 <div className="small muted">{me?.admNo}</div>
               </div>
             </div>
-            <div className="kv"><span className="k">Class</span><span className="v">{me?.className} – {me?.section}</span></div>
+            <div className="kv"><span className="k">Class</span><span className="v">{classLabel(me?.className ?? "", me?.section ?? "")}</span></div>
             <div className="kv"><span className="k">Roll no</span><span className="v">{me?.roll}</span></div>
             <div className="kv"><span className="k">Class teacher</span><span className="v">{cls?.classTeacher ?? "—"}</span></div>
             <div className="kv"><span className="k">Room</span><span className="v">{cls?.room ?? "—"}</span></div>
           </Card>
 
           <Card title="Upcoming">
-            <div className="kv"><span className="k">Half Yearly Exams</span><span className="v">28 Sep – 10 Oct</span></div>
-            <div className="kv"><span className="k">Sports Day trials</span><span className="v">29 Sep 2026</span></div>
-            <div className="kv"><span className="k">Fee due date</span><span className="v">30 Sep 2026</span></div>
+            <div className="kv">
+              <span className="k">{nextExam ? nextExam.name : "Examinations"}</span>
+              <span className="v">{nextExam ? `${fmtDate(nextExam.from)} – ${fmtDate(nextExam.to)}` : "—"}</span>
+            </div>
+            <div className="kv"><span className="k">Sports Day trials</span><span className="v">Next week</span></div>
+            <div className="kv"><span className="k">Fee due date</span><span className="v">End of this month</span></div>
           </Card>
         </div>
       </div>

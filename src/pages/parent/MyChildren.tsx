@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../../store/AppContext";
-import { demoUsers, fmtDate, inr, gradeOf, marks as seedMarks, payments, attendance } from "../../data/db";
+import { classLabel, demoUsers, fmtDate, inr, gradeOf, marks as seedMarks, payments, attendance } from "../../data/db";
 import { Avatar, Badge, Card, Icon, PageHead, Person, Stat, statusTone } from "../../components/ui";
 import { useFamily } from "../../store/family";
 
 export default function MyChildren() {
-  const { notices } = useApp();
+  const { notices, classes } = useApp();
   const kids = useFamily();
   const [sel, setSel] = useState(kids[0]?.id ?? "");
 
   const child = kids.find((k) => k.id === sel) ?? kids[0];
+  const kidClass = child
+    ? classes.find((c) => c.className === child.className && c.section === child.section)
+    : undefined;
 
   const att = child ? attendance.filter((a) => a.studentId === child.id) : [];
   const present = att.filter((a) => a.status === "Present").length;
@@ -58,7 +61,7 @@ export default function MyChildren() {
               <Avatar name={k.name} lg />
               <div className="grow">
                 <div className="strong" style={{ fontSize: 16 }}>{k.name}</div>
-                <div className="small muted">{k.className} – {k.section} · Roll {k.roll}</div>
+                <div className="small muted">{classLabel(k.className, k.section)} · Roll {k.roll}</div>
               </div>
               <Badge tone={statusTone(k.status)}>{k.status}</Badge>
             </div>
@@ -92,8 +95,8 @@ export default function MyChildren() {
                 </div>
               </div>
               <div className="kv"><span className="k">Roll number</span><span className="v">{child.roll}</span></div>
-              <div className="kv"><span className="k">Class teacher</span><span className="v">Anjali Deshpande</span></div>
-              <div className="kv"><span className="k">Room</span><span className="v">U-02</span></div>
+              <div className="kv"><span className="k">Class teacher</span><span className="v">{kidClass?.classTeacher ?? "—"}</span></div>
+              <div className="kv"><span className="k">Room</span><span className="v">{kidClass?.room ?? "—"}</span></div>
               <div className="kv"><span className="k">Admitted on</span><span className="v">{fmtDate(child.admissionDate)}</span></div>
               <div className="kv"><span className="k">Address</span><span className="v">{child.address}</span></div>
               <div className="flex mt">
@@ -139,7 +142,7 @@ export default function MyChildren() {
                   {kids.map((k) => (
                     <tr key={k.id}>
                       <td><Person name={k.name} sub={k.admNo} /></td>
-                      <td>{k.className} – {k.section}</td>
+                      <td>{classLabel(k.className, k.section)}</td>
                       <td className="num">{pctOf(k.id)}%</td>
                       <td className="num">{avgOf(k.id)}%</td>
                       <td className="num strong">{inr(paid2(k.id))}</td>

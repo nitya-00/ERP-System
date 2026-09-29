@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { feeStructure, fmtDate, inr, type Payment } from "../../data/db";
+import { CLASSES, feeStructure, fmtDate, inr, schoolStats, todayISO, type Payment } from "../../data/db";
 import { Badge, Card, Empty, Icon, Modal, PageHead, Person, Stat, statusTone } from "../../components/ui";
 import { useFamily } from "../../store/family";
 
@@ -15,10 +15,9 @@ export default function ParentFees() {
   const mine = payments.filter((p) => p.studentId === child?.id);
   const paid = mine.filter((p) => p.status === "Paid").reduce((a, b) => a + b.amount, 0);
   const due = mine.filter((p) => p.status !== "Paid").reduce((a, b) => a + b.amount, 0);
+  const idx = CLASSES.indexOf(child?.className ?? "");
   const grp =
-    child && (child.className.includes("10") || child.className.includes("9"))
-      ? "Class 9 – 10"
-      : "Class 1 – 5";
+    idx >= 8 ? "Sixth – Eighth" : idx >= 5 ? "Third – Fifth" : idx >= 3 ? "First – Second" : "Nursery – UKG";
   const billed = feeStructure.find((f) => f.className === grp)?.total ?? 40000;
   const progress = Math.round((paid / (paid + due || 1)) * 100);
 
@@ -119,7 +118,7 @@ export default function ParentFees() {
             </>
           }
         >
-          <div className="strong" style={{ fontSize: 17 }}>Sunrise Public School</div>
+          <div className="strong" style={{ fontSize: 17 }}>{schoolStats.name}</div>
           <div className="small muted">Sector 21, Rohini, New Delhi — 110086</div>
           <div className="divider" />
           <div className="kv"><span className="k">Receipt no</span><span className="v">{receipt.receiptNo}</span></div>
@@ -146,7 +145,7 @@ export default function ParentFees() {
                   addPayment({
                     studentId: child.id,
                     amount: p?.amount ?? (due || 20000),
-                    date: "2026-09-25",
+                    date: todayISO(),
                     mode: "UPI",
                     head: p?.head ?? "Tuition Fee — Term 2",
                     status: "Paid",
