@@ -67,23 +67,26 @@ export function Logo({ size = 38, block = false }: { size?: number; block?: bool
   const [ok, setOk] = useState(true);
   const src = schoolStats.logo ?? "/logo.png";
   const cls = `brand-logo${block ? " brand-logo-block" : ""}`;
+  const box = { width: size, height: size, borderRadius: Math.round(size * 0.29) };
   if (ok) {
     return (
       <img
         src={src}
         alt={`${schoolStats.name} logo`}
         className={cls}
-        style={
-          block
-            ? { display: "block", width: "100%", objectFit: "cover" }
-            : { width: size, height: size, borderRadius: Math.round(size * 0.29), display: "block", objectFit: "cover" }
-        }
+        style={block ? { display: "block", width: "100%", height: 44, objectFit: "contain" } : { ...box, display: "block", objectFit: "cover" }}
         onError={() => setOk(false)}
       />
     );
   }
   return (
-    <div className={`${cls} brand-logo-ph`} role="img" aria-label={`${schoolStats.name} logo`}>
+    <div
+      className={`${cls} brand-logo-ph`}
+      role="img"
+      aria-label={`${schoolStats.name} logo placeholder`}
+      title={schoolStats.logoPlaceholder}
+      style={block ? undefined : box}
+    >
       {schoolStats.logoPlaceholder}
     </div>
   );

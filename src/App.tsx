@@ -11,16 +11,19 @@ import Exams from "./pages/admin/Exams";
 import Reports from "./pages/admin/Reports";
 import Notices from "./pages/Notices";
 import Notifications from "./pages/Notifications";
+import TeacherDashboard from "./pages/teacher/Dashboard";
 import TeacherClasses from "./pages/teacher/MyClasses";
+import TeacherClassDetail from "./pages/teacher/ClassDetail";
 import TeacherAttendance from "./pages/teacher/Attendance";
 import TeacherMarks from "./pages/teacher/Marks";
+import TeacherTimetable from "./pages/teacher/Timetable";
 import MyChildren from "./pages/parent/MyChildren";
 import ParentFees from "./pages/parent/Fees";
 import ParentAttendance from "./pages/parent/Attendance";
 import ParentResults from "./pages/parent/Results";
 import StudentHome from "./pages/student/Home";
 import { useApp } from "./store/AppContext";
-import type { Role } from "./data/db";
+import { classSections as allClasses, classLabel, type Role } from "./data/db";
 
 const titles: Record<string, string> = {
   "/admin": "Admin Dashboard",
@@ -33,9 +36,11 @@ const titles: Record<string, string> = {
   "/admin/notices": "Notices & Communication",
   "/admin/notifications": "Notifications",
 
-  "/teacher": "My Classes",
+  "/teacher": "Dashboard",
+  "/teacher/classes": "My Classes",
   "/teacher/attendance": "Attendance",
   "/teacher/marks": "Marks",
+  "/teacher/timetable": "Timetable",
   "/teacher/notices": "Notices",
   "/teacher/notifications": "Notifications",
 
@@ -54,6 +59,19 @@ const titles: Record<string, string> = {
   "/student/notifications": "Notifications",
 };
 
+/** routes that are not statically mapped (e.g. a single class) get a live title */
+function titleFor(path: string): string {
+  const mapped = titles[path];
+  if (mapped) return mapped;
+  const m = path.match(/^\/teacher\/classes\/(.+)$/);
+  if (m) {
+    const cls = allClasses.find((c: { id: string }) => c.id === m[1]);
+    if (cls) return classLabel(cls.className, cls.section);
+    return "My Classes";
+  }
+  return "Dashboard";
+}
+
 function Portal({ role }: { role: Role }) {
   const { role: current, login } = useApp();
   const loc = useLocation();
@@ -67,7 +85,7 @@ function Portal({ role }: { role: Role }) {
   if (current !== role && wanted !== role) return <Navigate to="/login" replace />;
 
   return (
-    <Layout title={titles[loc.pathname] ?? "Dashboard"}>
+    <Layout title={titleFor(loc.pathname)}>
       <Outlet />
     </Layout>
   );
@@ -104,9 +122,12 @@ export default function App() {
       </Route>
 
       <Route path="/teacher" element={<Portal role="teacher" />}>
-        <Route index element={<TeacherClasses />} />
+        <Route index element={<TeacherDashboard />} />
+        <Route path="classes" element={<TeacherClasses />} />
+        <Route path="classes/:classId" element={<TeacherClassDetail />} />
         <Route path="attendance" element={<TeacherAttendance />} />
         <Route path="marks" element={<TeacherMarks />} />
+        <Route path="timetable" element={<TeacherTimetable />} />
         <Route path="notices" element={<Notices title="Notices" />} />
         <Route path="notifications" element={<Notifications title="Notifications" />} />
       </Route>

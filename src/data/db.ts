@@ -258,7 +258,7 @@ export const strength = (
 ) => list.filter((s) => s.className === className && s.section === section).length;
 
 export const teachers: Teacher[] = [
-  { id: "TCH01", name: "Anjali Deshpande", subject: "Mathematics", classes: ["First", "Second", "Third"], phone: "+91 98200 11223", email: "anjali.d@school.edu", experience: 11, qualification: "M.Sc, B.Ed", status: "Active", photoClass: 2 },
+  { id: "TCH01", name: "Anjali Deshpande", subject: "Mathematics", classes: ["First", "Second", "Third"], phone: "+91 98200 11223", email: "teacher@school.edu", experience: 11, qualification: "M.Sc, B.Ed", status: "Active", photoClass: 2 },
   { id: "TCH02", name: "Rajesh Kulkarni", subject: "Science", classes: ["Fifth", "Sixth"], phone: "+91 98200 22334", email: "rajesh.k@school.edu", experience: 14, qualification: "M.Sc, B.Ed", status: "Active", photoClass: 5 },
   { id: "TCH03", name: "Priya Menon", subject: "English", classes: ["UKG", "First"], phone: "+91 98200 33445", email: "priya.m@school.edu", experience: 8, qualification: "M.A, B.Ed", status: "Active", photoClass: 3 },
   { id: "TCH04", name: "Suresh Iyer", subject: "Social Science", classes: ["Second"], phone: "+91 98200 44556", email: "suresh.i@school.edu", experience: 9, qualification: "M.A, B.Ed", status: "Active", photoClass: 1 },
@@ -385,6 +385,9 @@ const TEACHER_CLASS_PATTERNS: ClassPattern[] = [
   { className: "First", section: "A", absentToday: [3, 12, 27], lateToday: [4], streaks: [{ roll: 12, days: 4 }, { roll: 3, days: 4 }] },
   { className: "Second", section: "A", absentToday: [7, 15, 22, 30], lateToday: [11], streaks: [{ roll: 15, days: 4 }, { roll: 22, days: 3 }] },
   { className: "Third", section: "A", absentToday: [5, 19, 28, 34], lateToday: [12, 6], streaks: [{ roll: 19, days: 5 }, { roll: 28, days: 3 }] },
+  { className: "First", section: "B", absentToday: [8, 21], lateToday: [16], streaks: [{ roll: 21, days: 3 }] },
+  { className: "Second", section: "B", absentToday: [5, 17, 33], lateToday: [9], streaks: [{ roll: 17, days: 4 }] },
+  { className: "Third", section: "B", absentToday: [11, 24, 38], lateToday: [3], streaks: [{ roll: 38, days: 3 }] },
 ];
 
 /** index inside `students` for a roll number of a class-section */
@@ -616,19 +619,16 @@ function genericScores(n: number, salt: number, subjectIdx: number): number[] {
 
 function seededTeacherMarks(): Mark[] {
   const rows: Mark[] = [];
+  const subject =
+    (teachers.find((t) => t.email === demoUsers.teacher.email) ?? teachers[0]).subject;
   teacherClasses.forEach((cls, ti) => {
     const roster = students
       .filter((s) => s.className === cls.className && s.section === cls.section)
       .sort((a, b) => a.roll - b.roll);
-    cls.subjects.forEach((subject, si) => {
-      const scores =
-        ti === 0 && subject === "Mathematics"
-          ? tunedScores(roster.length)
-          : genericScores(roster.length, ti, si);
-      roster.forEach((s, r) =>
-        rows.push({ studentId: s.id, examId: "T-HY", subject, marks: scores[r], max: 100 }),
-      );
-    });
+    const scores = ti === 0 ? tunedScores(roster.length) : genericScores(roster.length, ti, 0);
+    roster.forEach((s, r) =>
+      rows.push({ studentId: s.id, examId: "T-HY", subject, marks: scores[r], max: 100 }),
+    );
   });
   return rows;
 }

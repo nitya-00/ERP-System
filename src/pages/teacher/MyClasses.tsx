@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../../store/AppContext";
+import { useTeacher } from "../../store/TeacherContext";
 import { classLabel, demoUsers, exams, fmtDate, strength, teachers, todayISO } from "../../data/db";
 import { Badge, Card, Icon, PageHead, Person, Stat } from "../../components/ui";
 
@@ -15,6 +16,7 @@ const periods = ["8:00 – 8:45", "8:45 – 9:30", "9:35 – 10:20", "10:20 – 
 
 export default function TeacherClasses() {
   const { students, attendance, classes } = useApp();
+  const { setClassId } = useTeacher();
   const me = teachers.find((t) => t.email === demoUsers.teacher.email) ?? teachers[0];
   const myClasses = classes.filter((c) => me.classes.includes(c.className));
   const home = myClasses[0] ?? classes[0];
@@ -142,6 +144,13 @@ export default function TeacherClasses() {
                   <span>Class teacher: {c.classTeacher}</span>
                 </div>
               </div>
+              <Link
+                to={`/teacher/classes/${c.id}`}
+                className="btn btn-soft btn-sm"
+                onClick={() => setClassId(c.id)}
+              >
+                Open
+              </Link>
             </div>
           ))}
           <div className="hint" style={{ marginTop: 10 }}>

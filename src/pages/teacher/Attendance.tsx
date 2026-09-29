@@ -1,24 +1,26 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../store/AppContext";
-import { ATTENDANCE_DATES, classLabel, todayISO } from "../../data/db";
+import { ATTENDANCE_DATES, classLabel, fmtDate, todayISO } from "../../data/db";
+import { useTeacher } from "../../store/TeacherContext";
 import { Badge, Card, Empty, Icon, PageHead, Person, Stat } from "../../components/ui";
 
 type Mark = "Present" | "Absent" | "Late";
 
 export default function TeacherAttendance() {
-  const { attendance, setAttendance, classes, students } = useApp();
-  const [classId, setClassId] = useState(classes[0]?.id ?? "");
+  const { attendance, setAttendance, classes: allClasses, students } = useApp();
+  const { classes: assigned, classId, setClassId } = useTeacher();
+  const classes = assigned.length ? assigned : allClasses;
   const [date, setDate] = useState(todayISO());
   const [draft, setDraft] = useState<Record<string, Mark> | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(true);
 
-  const cls = classes.find((c) => c.id === classId) ?? classes[0];
+  const cls = classes.find((c) => c.id === classId) ?? classes[0] ?? allClasses[0];
   const roster = useMemo(
     () =>
       students
         .filter((s) => s.className === cls.className && s.section === cls.section)
         .sort((a, b) => a.roll - b.roll),
-    [cls],
+    [cls, students],
   );
 
   const current = (id: string): Mark => {
@@ -56,7 +58,7 @@ export default function TeacherAttendance() {
     <>
       <PageHead
         title="Attendance"
-        desc="Mark daily attendance for your class. Parents are notified of absences."
+        desc={`${classLabel(cls.className, cls.section)} · ${fmtDate(date)} · ${roster.length} students on the register`}
         actions={
           <>
             <button className="btn btn-outline" onClick={() => setAll("Present")}>
@@ -77,19 +79,19 @@ export default function TeacherAttendance() {
       </div>
 
       <Card
-        title={`${cls.className} – ${cls.section} · Daily Register`}
+        title={`${classLabel(cls.className, cls.section)} · Daily Register`}
         sub={`Class teacher: ${cls.classTeacher} · Room ${cls.room}`}
         pad={false}
         right={
           <div className="flex" style={{ gap: 9 }}>
-            <select className="select" style={{ width: 150 }} value={classId} onChange={(e) => { setClassId(e.target.value); setDraft(null); }}>
+            <select className="select" style={{ width: 160 }} value={cls.id} onChange={(e) => { setClassId(e.target.value); setDraft(null); }}>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{classLabel(c.className, c.section)}</option>
               ))}
             </select>
             <select className="select" style={{ width: 150 }} value={date} onChange={(e) => { setDate(e.target.value); setDraft(null); }}>
               {[...ATTENDANCE_DATES].reverse().map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>{fmtDate(d)}</option>
               ))}
             </select>
           </div>
