@@ -30,6 +30,8 @@ import {
   type Role,
   type Student,
 } from "../data/db";
+import { getCurrentIdentity, type ApiIdentity } from "../api/auth";
+import { getSupabaseClient, isAuthConfigured } from "../lib/supabase";
 
 /* ---------------------------------------------------------
    Storage helpers
@@ -78,8 +80,11 @@ export type Toast = { id: number; text: string };
 
 type Ctx = {
   role: Role | null;
-  login: (r: Role) => void;
-  logout: () => void;
+  authStatus: "loading" | "authenticated" | "unauthenticated" | "configuration-required";
+  authError: string | null;
+  identity: ApiIdentity | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 
   students: Student[];
   notices: Notice[];
@@ -110,9 +115,27 @@ type Ctx = {
 
 const AppCtx = createContext<Ctx | null>(null);
 
+type AuthState = {
+  status: Ctx["authStatus"];
+  role: Role | null;
+  identity: ApiIdentity | null;
+  error: string | null;
+};
+
+function portalRole(identity: ApiIdentity): Role {
+  const role = identity.roles.find((value): value is "ADMIN" | "TEACHER" | "PARENT" | "STUDENT" =>
+    ["ADMIN", "TEACHER", "PARENT", "STUDENT"].includes(value),
+  );
+  if (!role) throw new Error("Your account has no supported ERP portal role.");
+  return role.toLowerCase() as Role;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(load);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [auth, setAuth] = useState<AuthState>(() => isAuthConfigured
+    ? { status: "loading", role: null, identity: null, error: null }
+    : { status: "configuration-required", role: null, identity: null, error: "Authentication has not been configured yet." });
 
   useEffect(() => {
     try {
@@ -130,8 +153,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const patch = useCallback((fn: (s: Persisted) => Persisted) => setState((s) => fn(s)), []);
 
+  const loadIdentity = useCallback(async (accessToken: string) => {
+    const identity = await getCurrentIdentity(accessToken);
+    setAuth({ status: "authenticated", role: portalRole(identity), identity, error: null });
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthConfigured) return;
+    const supabase = getSupabaseClient();
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error || !data.session) {
+        setAuth({ status: "unauthenticated", role: null, identity: null, error: error?.message ?? null });
+        return;
+      }
+      loadIdentity(data.session.access_token).catch((identityError: unknown) => {
+        setAuth({ status: "unauthenticated", role: null, identity: null, error: identityError instanceof Error ? identityError.message : "Unable to load your ERP account." });
+      });
+    });
+  }, [loadIdentity]);
+
   const value = useMemo<Ctx>(() => {
-    const role = state.role;
+    const role = auth.role;
     const visibleNotices = role
       ? state.notices.filter((n) => n.forRoles.includes(role))
       : [];
@@ -141,8 +183,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     return {
       role,
-      login: (r) => patch((s) => ({ ...s, role: r })),
-      logout: () => patch((s) => ({ ...s, role: null })),
+      authStatus: auth.status,
+      authError: auth.error,
+      identity: auth.identity,
+      signIn: async (email, password) => {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error || !data.session) throw new Error(error?.message ?? "Unable to sign in.");
+        await loadIdentity(data.session.access_token);
+      },
+      logout: async () => {
+        if (isAuthConfigured) await getSupabaseClient().auth.signOut();
+        setAuth({ status: isAuthConfigured ? "unauthenticated" : "configuration-required", role: null, identity: null, error: null });
+      },
 
       students: state.students,
       notices: visibleNotices,
@@ -292,9 +345,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       toasts,
       toast,
-      reset: () => setState({ ...initial, role: state.role }),
+      reset: () => setState({ ...initial, role: null }),
     };
-  }, [state, toasts, toast, patch]);
+  }, [state, auth, toasts, toast, patch, loadIdentity]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

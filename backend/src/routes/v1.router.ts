@@ -1,10 +1,13 @@
 import { Router } from "express";
 import { success } from "../common/utils/api-response.js";
+import { authRouter } from "../modules/auth/auth.routes.js";
 
 export const v1Router = Router();
 
 v1Router.get("/", (_req, res) => {
-  return success(res, { version: "v1", status: "foundation" });
+  return success(res, { version: "v1", status: "identity-ready" });
 });
 
-// Domain routers will mount here as their approved implementation phases begin.
+v1Router.use("/auth", authRouter);
+
+// Domain routers mount here as their approved implementation phases begin.

@@ -28,7 +28,7 @@ async function main() {
   for (const key of ROLES) {
     const role = await prisma.role.upsert({ where: { key }, update: {}, create: { key, name: key } });
     const permissions = await prisma.permission.findMany({
-      where: { key: { in: permissionByRole[key] } },
+      where: { key: { in: [...permissionByRole[key]] } },
       select: { id: true },
     });
     await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });

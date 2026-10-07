@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
@@ -73,16 +72,11 @@ function titleFor(path: string): string {
 }
 
 function Portal({ role }: { role: Role }) {
-  const { role: current, login } = useApp();
+  const { role: current, authStatus } = useApp();
   const loc = useLocation();
-  const wanted = new URLSearchParams(loc.search).get("as") as Role | null;
 
-  // Demo deep-link: /admin/fees?as=admin opens that portal without the login form.
-  useEffect(() => {
-    if (wanted && wanted === role && current !== wanted) login(wanted);
-  }, [wanted, role, current, login]);
-
-  if (current !== role && wanted !== role) return <Navigate to="/login" replace />;
+  if (authStatus === "loading") return null;
+  if (current !== role) return <Navigate to="/login" replace />;
 
   return (
     <Layout title={titleFor(loc.pathname)}>
@@ -92,7 +86,8 @@ function Portal({ role }: { role: Role }) {
 }
 
 function Home() {
-  const { role } = useApp();
+  const { role, authStatus } = useApp();
+  if (authStatus === "loading") return null;
   if (!role) return <Navigate to="/login" replace />;
   return <Navigate to={`/${role}`} replace />;
 }

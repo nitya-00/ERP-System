@@ -113,10 +113,15 @@ const roleHome: Record<string, string> = {
 };
 
 export default function Layout({ children, title }: { children: ReactNode; title: string }) {
-  const { role, logout, notifications } = useApp();
+  const { role, logout, notifications, identity } = useApp();
   const loc = useLocation();
   const [open, setOpen] = useState(false);
-  const user = role ? demoUsers[role] : demoUsers.admin;
+  const demoUser = role ? demoUsers[role] : demoUsers.admin;
+  const user = {
+    ...demoUser,
+    name: identity?.displayName ?? demoUser.name,
+    subtitle: identity?.email ?? demoUser.subtitle,
+  };
   const unread = role ? notifications.filter((n) => !n.read).length : 0;
   const groups = role ? NAV[role] : [];
 
@@ -172,7 +177,7 @@ export default function Layout({ children, title }: { children: ReactNode; title
               {roleEmoji[role ?? "admin"]} {role} · {user.subtitle}
             </div>
           </div>
-          <button className="logout-btn" onClick={logout} title="Sign out">
+          <button className="logout-btn" onClick={() => void logout()} title="Sign out">
             <Icon name="logout" size={16} />
           </button>
         </div>

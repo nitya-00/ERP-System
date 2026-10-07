@@ -1,61 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../store/AppContext";
-import { demoUsers, schoolStats, type Role } from "../data/db";
+import { schoolStats } from "../data/db";
 import { Icon, Logo } from "../components/ui";
 
-const roles: { id: Role; emoji: string; label: string }[] = [
-  { id: "admin", emoji: "👨‍💼", label: "Admin" },
-  { id: "teacher", emoji: "👩‍🏫", label: "Teacher" },
-  { id: "parent", emoji: "👨‍👩‍👧", label: "Parent" },
-  { id: "student", emoji: "🎓", label: "Student" },
-];
-
-const home: Record<Role, string> = {
-  admin: "/admin",
-  teacher: "/teacher",
-  parent: "/parent",
-  student: "/student",
-};
-
 export default function Login() {
-  const { login } = useApp();
+  const { signIn, authStatus, authError } = useApp();
   const nav = useNavigate();
-  const [role, setRole] = useState<Role>("admin");
-  const [email, setEmail] = useState(demoUsers.admin.email);
-  const [pw, setPw] = useState(demoUsers.admin.password);
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Deep-link shortcut: /login?as=teacher signs straight into that portal.
-  useEffect(() => {
-    const wanted = new URLSearchParams(window.location.search).get("as") as Role | null;
-    if (wanted && wanted in demoUsers) {
-      login(wanted);
-      nav(home[wanted], { replace: true });
-    }
-  }, []);
-
-  const pick = (r: Role) => {
-    setRole(r);
-    setEmail(demoUsers[r].email);
-    setPw(demoUsers[r].password);
-    setErr("");
-  };
-
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const u = demoUsers[role];
-    if (email.trim().toLowerCase() !== u.email || pw !== u.password) {
-      setErr("Invalid credentials for this role. Use the demo login below.");
-      return;
-    }
     setErr("");
     setBusy(true);
-    setTimeout(() => {
-      login(role);
-      nav(home[role]);
-    }, 450);
+    try {
+      await signIn(email.trim(), pw);
+      nav("/", { replace: true });
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Unable to sign in.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -110,21 +78,7 @@ export default function Login() {
       <section className="login-side">
         <form className="login-box" onSubmit={submit}>
           <h1>Welcome back</h1>
-          <p className="sub">Choose your portal and sign in to continue.</p>
-
-          <div className="role-grid">
-            {roles.map((r) => (
-              <button
-                type="button"
-                key={r.id}
-                className={`role-card ${role === r.id ? "on" : ""}`}
-                onClick={() => pick(r.id)}
-              >
-                <div className="em">{r.emoji}</div>
-                <div className="nm">{r.label}</div>
-              </button>
-            ))}
-          </div>
+          <p className="sub">Sign in with the account provided by your school.</p>
 
           <div className="field">
             <label className="label" htmlFor="email">Email address</label>
@@ -156,32 +110,21 @@ export default function Login() {
             )}
           </div>
 
-          <div className="flex" style={{ justifyContent: "space-between", margin: "4px 0 16px" }}>
-            <label className="check">
-              <input type="checkbox" defaultChecked /> Remember me
-            </label>
-            <span className="small muted" style={{ cursor: "pointer" }}>
-              Forgot password?
-            </span>
-          </div>
+          {(err || authError || authStatus === "configuration-required") && (
+            <div className="hint" style={{ color: "var(--danger)", fontWeight: 600, margin: "4px 0 16px" }}>
+              ⚠ {err || authError || "Authentication setup is required."}
+            </div>
+          )}
 
-          <button className="btn btn-primary btn-lg btn-block" disabled={busy}>
-            {busy ? "Signing in…" : `Sign in as ${role}`}
+          <button className="btn btn-primary btn-lg btn-block" disabled={busy || authStatus === "configuration-required"}>
+            {busy ? "Signing in…" : "Sign in"}
             {!busy && <Icon name="arrow" size={16} />}
           </button>
 
           <div className="demo-box">
-            <div className="t">Demo credentials</div>
-            <div className="demo-cred">
-              <span>
-                {roles.find((r) => r.id === role)?.label} login
-              </span>
-              <code>
-                {demoUsers[role].email} / {demoUsers[role].password}
-              </code>
-            </div>
+            <div className="t">Secure school account</div>
             <div className="hint" style={{ marginTop: 8 }}>
-              Select any role card above — the credentials auto-fill. Just press Sign in.
+              Your portal is assigned by the school. The server verifies your account and role after sign-in.
             </div>
           </div>
         </form>

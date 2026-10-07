@@ -263,8 +263,9 @@ These tests are required as modules evolve.
 ## 10. Current repository state
 
 - `frontend/` remains a working React/Vite application using seeded/local state.
-- `backend/` is now a TypeScript Express structural foundation aligned to this
-  context; it is not yet a production API or connected database.
-- The next implementation task should be the foundation phase, not dashboard
-  endpoints: configure TypeScript/Prisma/PostgreSQL, migrations, seeds,
-  environment validation, then identity and scoped authorization.
+- `backend/` now includes the TypeScript Express foundation plus the Phase 2
+  identity structure: Supabase JWT verification, ERP users, roles, permissions,
+  audit logging, and `/api/v1/auth/me`. It is not connected to a real database.
+- The next implementation task is academic setup, not dashboard endpoints:
+  configure the real database and migration only after review, then create
+  academic years, classes, sections, subjects, teachers, and assignments.

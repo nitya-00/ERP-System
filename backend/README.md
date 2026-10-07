@@ -62,19 +62,22 @@ cp .env.example .env
 npm run dev
 ```
 
-## Phase 1 status
+## Foundation and identity status
 
 Phase 1 is complete locally:
 
 - TypeScript Express bootstrap, versioned `/api/v1` routing, CORS, Helmet,
   request IDs, rate limiting, structured logging, standard responses, and
   centralized error handling are in place.
-- Prisma has the initial `School` and `AcademicYear` models, plus a seed entry
-  point. No migration was run because this repository does not contain a real
-  `DATABASE_URL`.
+- Phase 2 adds Supabase JWT verification, ERP user/role/permission models,
+  `GET /api/v1/auth/me`, authorization middleware, login-session audit events,
+  and a Supabase-backed frontend sign-in flow. The frontend does not access
+  school tables directly.
 - `npm run build`, `npm test`, and `npm run prisma:generate` pass.
 
-Before creating a real database migration, copy `.env.example` to `.env` and add
-the Supabase PostgreSQL connection string. Feature APIs are deliberately the
-next phase. Read the complete product context in
+No migration has been run because this repository does not contain a real
+`DATABASE_URL`; no Supabase users or school records were created. Configure both
+`backend/.env` and `frontend/.env` from their `.env.example` files before using
+the live login flow. Feature APIs are deliberately the next phase. Read the
+complete product context in
 [`../sources/project-context.md`](../sources/project-context.md).

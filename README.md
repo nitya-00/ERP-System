@@ -153,10 +153,11 @@ npm run build
 
 ## Backend status and next phases
 
-The backend foundation is implemented: Express, TypeScript, versioned `/api/v1`
-routing, configuration validation, structured logging, request IDs, CORS, Helmet,
-rate limiting, Prisma client generation, and the initial `School` and
-`AcademicYear` schema. `GET /health` and `GET /api/v1` are available locally.
+The backend foundation and identity layer are implemented: Express, TypeScript,
+versioned `/api/v1` routing, configuration validation, structured logging,
+request IDs, CORS, Helmet, rate limiting, Prisma client generation, Supabase JWT
+verification, ERP users/roles/permissions, and `GET /api/v1/auth/me`.
+`GET /health` and `GET /api/v1` are available locally.
 
 No database migration has been run because the real Supabase `DATABASE_URL` is
 not stored in this repository. Feature routes and production identity are still
@@ -164,8 +165,10 @@ the next phases.
 
 The recommended small implementation sequence is:
 
-1. Add environment validation, PostgreSQL connection, migrations, and seed data.
-2. Build authentication, roles, and secure admin/teacher/parent/student sessions.
+1. Configure the real Supabase PostgreSQL connection, run the reviewed migration,
+   and provision the first ERP users and role assignments.
+2. Add school setup: academic years, terms, classes, sections, subjects,
+   teachers, and teacher assignments.
 3. Add read-only student profiles with ownership checks for every role.
 4. Move admissions, attendance, fees, and exams one feature at a time from mock
    data to API-backed data.
@@ -175,6 +178,7 @@ The recommended small implementation sequence is:
 ## Current limitations
 
 - Frontend records are demo data, persisted locally in the browser.
-- No production authentication, PostgreSQL connection, file storage, payment
-  gateway, or notification provider is connected yet.
-- The backend is intentionally a foundation, not a completed API.
+- Supabase credentials and PostgreSQL migration are intentionally not configured
+  in this repository; live login cannot work until the environment is supplied.
+- School-domain feature APIs, file storage, payments, and notifications are not
+  implemented yet.
