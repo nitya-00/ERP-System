@@ -40,6 +40,10 @@ export const NAV: Record<string, { label: string; items: NavItem[] }[]> = {
         { to: "/admin/notifications", label: "Notifications", icon: "bell", badge: 3 },
       ],
     },
+    {
+      label: "Platform",
+      items: [{ to: "/admin/architecture", label: "Backend Architecture", icon: "shield" }],
+    },
   ],
   teacher: [
     {

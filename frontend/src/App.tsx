@@ -9,6 +9,7 @@ import TeachersClasses from "./pages/admin/Teachers";
 import Fees from "./pages/admin/Fees";
 import Exams from "./pages/admin/Exams";
 import Reports from "./pages/admin/Reports";
+import Architecture from "./pages/admin/Architecture";
 import Notices from "./pages/Notices";
 import Notifications from "./pages/Notifications";
 import TeacherDashboard from "./pages/teacher/Dashboard";
@@ -33,6 +34,7 @@ const titles: Record<string, string> = {
   "/admin/fees": "Fees",
   "/admin/exams": "Exams & Results",
   "/admin/reports": "Reports",
+  "/admin/architecture": "Backend Architecture",
   "/admin/notices": "Notices & Communication",
   "/admin/notifications": "Notifications",
 
@@ -117,6 +119,7 @@ export default function App() {
         <Route path="fees" element={<Fees />} />
         <Route path="exams" element={<Exams />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="architecture" element={<Architecture />} />
         <Route path="notices" element={<Notices title="Notices & Communication" />} />
         <Route path="notifications" element={<Notifications title="Notifications" />} />
       </Route>
