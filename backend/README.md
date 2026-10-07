@@ -1,81 +1,75 @@
-# School ERP backend — Phase 1 foundation
+# School ERP API
 
-This folder is intentionally a **contract-first scaffold**. The live product is the
-React app in `../frontend`, so no existing screen depends on an API yet.
-The next phases can introduce the service without a risky all-at-once migration.
+This is the backend workspace for a Node.js + Express API. It is deliberately a
+modular monolith: one API and one PostgreSQL database, with clear feature
+boundaries. This is simpler to operate than microservices and remains easy to
+split later if a real scaling need appears.
 
-## Recommended shape
-
-Use a modular monolith first: one deployable API, one relational database, and
-modules that own their rules and database access. This is the right scale for a
-school ERP; splitting every feature into microservices would add operational work
-before it solves a real problem.
+## Folder structure
 
 ```
 backend/
+  package.json
   src/
-    app.ts                 HTTP composition and module registration
-    config/                environment validation and configuration
-    common/                auth middleware, errors, audit events, shared utilities
+    app.js                         Express app and global middleware
+    server.js                      process entry point
+    config/
+      env.js                       environment configuration
+    database/                      connection, migrations and seed scripts
+    common/
+      constants/roles.js           admin, teacher, parent, student roles
+      middleware/                  authentication, authorization, errors
+      errors/                      application error classes
+      utils/                       shared helpers
     modules/
-      identity/            users, roles, permissions, sessions
-      admissions/          applications and conversion to enrolment
-      students/            student, guardian and enrolment profiles
-      academics/           classes, sections, subjects, timetables
-      attendance/          daily registers and attendance summaries
-      fees/                fee plans, invoices, payments, receipts
-      exams/               assessments, marks, report cards
-      communication/       notices, notifications and delivery jobs
-      reports/             read-only reporting queries and exports
+      auth/                        login, refresh tokens, password reset
+      users/                       user accounts and role assignment
+      admissions/                  admission applications and documents
+      students/                    students, guardians, enrolments
+      academics/                   classes, sections, subjects, timetables
+      attendance/                  daily attendance registers
+      fees/                        fee plans, invoices, payments, receipts
+      exams/                       exams, marks, report cards
+      communication/               notices and notifications
+      reports/                     read-only reports and exports
+      portals/
+        admin/                     whole-school dashboard and approvals
+        teacher/                   assigned-class dashboard and actions
+        parent/                    linked-child dashboard and actions
+        student/                   self-service dashboard and actions
 ```
 
-Each module should later contain `routes`, `service`, `repository`, `schema`, and
-`types`. Modules may call another module's public service, but must not reach into
-its database repository directly.
+## Role design
 
-## Core platform choices
+Every request will first pass through authentication and authorization. The four
+portals are all first-class backend concerns, not admin-only features:
 
-- **API:** TypeScript + Fastify (or NestJS if a convention-heavy framework is
-  preferred); REST with OpenAPI generated from request schemas.
-- **Database:** PostgreSQL. It fits the relational school model, transactions for
-  fees, and reporting better than a document store.
-- **Data access:** Prisma or Drizzle; migrations live with the backend.
-- **Async work:** a database-backed job queue initially for notification delivery,
-  receipt/email generation, and exports. Add Redis only when scale requires it.
-- **Files:** object storage for student documents and generated report cards; save
-  only metadata and access policy in PostgreSQL.
-- **Auth:** short-lived access tokens plus rotating refresh tokens; role and
-  school-scoped permission checks at the route boundary.
-- **Safety:** audit every financial, marks, attendance, and admission change;
-  encrypt sensitive fields at rest where required; never hard-delete academic or
-  financial records.
+- **Admin:** school-wide administration, admissions decisions, fee controls,
+  reports, staff/class configuration, notices.
+- **Teacher:** only assigned classes, attendance registers, marks entry,
+  timetable, teacher notices.
+- **Parent:** only children linked to that parent, their attendance, fees,
+  results, notices.
+- **Student:** only their own profile, attendance, fees, results, timetable,
+  notices.
 
-## Important data relationships
+Role checks alone are not enough: parent and student requests must also enforce
+record ownership; teacher requests must validate class/subject assignment.
 
-- A `school` owns users, students, classes, fee plans, exams, notices, and audit
-  records. Keep `school_id` on all tenant-owned tables from day one.
-- A student has one or more guardians, and has enrolments over time rather than a
-  mutable class field only.
-- Attendance and marks reference an enrolment plus a date/assessment, preventing
-  ambiguity when a student changes section.
-- A payment belongs to an invoice; receipts are immutable snapshots.
+## Data rules
 
-## First API slice (the next small phase)
+- PostgreSQL is the system of record. Every school-owned table includes
+  `school_id` for tenant isolation.
+- Store guardian-to-student links and enrolment history; do not rely on a mutable
+  `className` field alone.
+- Payment receipts, marks publication, attendance corrections, and admission
+  decisions are audit events—not silent updates.
+- Uploaded documents live in object storage; PostgreSQL stores metadata and
+  access policy only.
 
-Start with **identity + students, read-only**:
+## Current scope
 
-1. `POST /v1/auth/login` and `POST /v1/auth/refresh`
-2. `GET /v1/me`
-3. `GET /v1/students?classId=&search=&page=`
-4. `GET /v1/students/:id`
-
-That lets the existing student list replace mock reads while avoiding sensitive
-writes. Add admissions next, then attendance, then fees and marks in separate
-vertical slices.
-
-## Frontend transition
-
-Keep the current React source working during the API transition. Add an
-`api/` client and feature repositories in the frontend; swap one read path at a
-time behind a `VITE_DATA_SOURCE=mock|api` flag. Do not connect the browser directly
-to the database.
+The Express bootstrap exposes `GET /health`. Feature routes are intentionally not
+implemented in this phase. The first API slice should be authentication plus
+read-only student access for all appropriate roles, before replacing mock data in
+the frontend.
