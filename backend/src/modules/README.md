@@ -1,29 +1,23 @@
-# Domain modules
+# Domain module contract
 
-Each feature module will use the same internal layout:
-
-```
-module-name/
-  module-name.routes.js
-  module-name.controller.js
-  module-name.service.js
-  module-name.repository.js
-  module-name.validation.js
-```
-
-`portals/` is different: it contains read-model routes composed for each role's
-dashboard. It never owns student, fee, attendance, or marks data; it asks the
-relevant feature service for that data.
-
-| Module | Owns |
+| Module | Responsibility |
 | --- | --- |
-| auth | credentials, tokens, sessions and password resets |
-| users | accounts and role assignment |
-| admissions | applications and admissions documents |
-| students | student, guardian and enrolment records |
-| academics | classes, sections, subjects and timetable |
-| attendance | registers and attendance entries |
-| fees | fee plans, invoices, payments and receipts |
-| exams | exams, marks and report cards |
-| communication | notices, notifications and delivery attempts |
-| reports | read-only exports and aggregate reports |
+| auth | Supabase token verification, current session, account recovery hooks |
+| users | ERP user profile, roles, permissions, account status |
+| students | Student identity, lifecycle, student profile API |
+| guardians | Guardians and guardian-student relationships |
+| teachers | Teacher profile and teacher-facing assigned work |
+| academics | Academic years, terms, classes, sections, subjects, timetable, assignments |
+| admissions | Application review and transactional enrolment conversion |
+| attendance | Sessions, records, corrections, summaries, analytics |
+| exams | Exams, schedules, subjects, grade scales, raw marks |
+| results | Result calculation, verification, and publication |
+| fees | Structures, assignments, invoices, items, payments, receipts |
+| notices | Targeted school announcements |
+| notifications | Per-user in-app notification records and delivery workflow |
+| reports | Read-only reporting and exports |
+| audit | Sensitive action audit trail |
+
+The modules are intentionally separate from role routes. A dashboard may compose
+data from several public module services, but a teacher/parent/student request
+must still be scope-checked by the owning feature service.

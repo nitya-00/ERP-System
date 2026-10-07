@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core models will be added in the foundation phase, beginning with School,
+// AcademicYear, User/Role, Student, GuardianStudent, TeacherAssignment, and
+// Enrollment. Do not add unscoped portal-specific duplicate tables here.

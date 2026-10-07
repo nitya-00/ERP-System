@@ -1,75 +1,67 @@
 # School ERP API
 
-This is the backend workspace for a Node.js + Express API. It is deliberately a
-modular monolith: one API and one PostgreSQL database, with clear feature
-boundaries. This is simpler to operate than microservices and remains easy to
-split later if a real scaling need appears.
+This workspace is the future source of truth for the School ERP. It uses a
+TypeScript modular monolith: Express handles HTTP, Zod validates inputs, Prisma
+accesses PostgreSQL, and each business domain owns its routes, controller,
+service, schema, repository, and types.
 
-## Folder structure
+## Structure
 
-```
-backend/
-  package.json
-  src/
-    app.js                         Express app and global middleware
-    server.js                      process entry point
-    config/
-      env.js                       environment configuration
-    database/                      connection, migrations and seed scripts
-    common/
-      constants/roles.js           admin, teacher, parent, student roles
-      middleware/                  authentication, authorization, errors
-      errors/                      application error classes
-      utils/                       shared helpers
-    modules/
-      auth/                        login, refresh tokens, password reset
-      users/                       user accounts and role assignment
-      admissions/                  admission applications and documents
-      students/                    students, guardians, enrolments
-      academics/                   classes, sections, subjects, timetables
-      attendance/                  daily attendance registers
-      fees/                        fee plans, invoices, payments, receipts
-      exams/                       exams, marks, report cards
-      communication/               notices and notifications
-      reports/                     read-only reports and exports
-      portals/
-        admin/                     whole-school dashboard and approvals
-        teacher/                   assigned-class dashboard and actions
-        parent/                    linked-child dashboard and actions
-        student/                   self-service dashboard and actions
+```text
+src/
+  app.ts, server.ts
+  config/                    environment, database, structured logger
+  common/                    constants, errors, types, utilities, validators
+  middleware/                auth, authorization, errors, rate limits, request IDs
+  modules/
+    auth, users
+    students, guardians, teachers
+    academics, admissions, attendance
+    exams, results, fees
+    notices, notifications, reports, audit
+  database/
+    prisma/                  Prisma schema, migrations, seeds
+    repositories/            shared persistence helpers only
+tests/
+  unit/ integration/ authorization/
 ```
 
-## Role design
+Each module follows this pattern when implemented:
 
-Every request will first pass through authentication and authorization. The four
-portals are all first-class backend concerns, not admin-only features:
+```text
+module/
+  module.routes.ts
+  module.controller.ts
+  module.service.ts
+  module.schema.ts
+  module.repository.ts
+  module.types.ts
+```
 
-- **Admin:** school-wide administration, admissions decisions, fee controls,
-  reports, staff/class configuration, notices.
-- **Teacher:** only assigned classes, attendance registers, marks entry,
-  timetable, teacher notices.
-- **Parent:** only children linked to that parent, their attendance, fees,
-  results, notices.
-- **Student:** only their own profile, attendance, fees, results, timetable,
-  notices.
+The API is domain-based (`/api/v1/students`, `/api/v1/attendance`,
+`/api/v1/fees`), not a duplicated admin-only API. Dashboard endpoints can be
+role-oriented, but data access remains scoped by domain and relationship.
 
-Role checks alone are not enough: parent and student requests must also enforce
-record ownership; teacher requests must validate class/subject assignment.
+## Role and scope requirements
 
-## Data rules
+- **Admin:** school-wide actions allowed by its permissions.
+- **Teacher:** only assigned class/section/subject records via
+  `TeacherAssignment`.
+- **Parent:** only students joined through `GuardianStudent`.
+- **Student:** only their own profile/records.
 
-- PostgreSQL is the system of record. Every school-owned table includes
-  `school_id` for tenant isolation.
-- Store guardian-to-student links and enrolment history; do not rely on a mutable
-  `className` field alone.
-- Payment receipts, marks publication, attendance corrections, and admission
-  decisions are audit events—not silent updates.
-- Uploaded documents live in object storage; PostgreSQL stores metadata and
-  access policy only.
+Every request must pass authentication, role/permission checks, relationship
+scope checks, and the relevant business rules. Controllers must never put Prisma
+queries or authorization decisions directly in HTTP handlers.
 
-## Current scope
+## Commands
 
-The Express bootstrap exposes `GET /health`. Feature routes are intentionally not
-implemented in this phase. The first API slice should be authentication plus
-read-only student access for all appropriate roles, before replacing mock data in
-the frontend.
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+`GET /health` is the only live endpoint in this foundation. Feature APIs and the
+PostgreSQL/Prisma models are deliberately next-phase work. Read the complete
+product context in [`../sources/project-context.md`](../sources/project-context.md).
