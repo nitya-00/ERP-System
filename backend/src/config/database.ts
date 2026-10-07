@@ -7,8 +7,12 @@ const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClien
  * One Prisma client per running API process. Import this client from repositories;
  * never instantiate PrismaClient inside a request handler.
  */
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  datasources: { db: { url: requireDatabaseUrl() } },
-});
+export function getPrisma() {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = new PrismaClient({
+      datasources: { db: { url: requireDatabaseUrl() } },
+    });
+  }
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+  return globalForPrisma.prisma;
+}
