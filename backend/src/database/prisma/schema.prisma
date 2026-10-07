@@ -7,6 +7,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Core models will be added in the foundation phase, beginning with School,
-// AcademicYear, User/Role, Student, GuardianStudent, TeacherAssignment, and
-// Enrollment. Do not add unscoped portal-specific duplicate tables here.
+enum AcademicYearStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+}
+
+model School {
+  id            String         @id @default(cuid())
+  code          String         @unique
+  name          String
+  timezone      String         @default("Asia/Kolkata")
+  currency      String         @default("INR")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  academicYears AcademicYear[]
+}
+
+model AcademicYear {
+  id        String             @id @default(cuid())
+  schoolId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean            @default(false)
+  status    AcademicYearStatus @default(PLANNED)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  school    School             @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+
+  @@unique([schoolId, name])
+  @@index([schoolId, isCurrent])
+}
