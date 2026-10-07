@@ -62,6 +62,19 @@ cp .env.example .env
 npm run dev
 ```
 
-`GET /health` is the only live endpoint in this foundation. Feature APIs and the
-PostgreSQL/Prisma models are deliberately next-phase work. Read the complete
-product context in [`../sources/project-context.md`](../sources/project-context.md).
+## Phase 1 status
+
+Phase 1 is complete locally:
+
+- TypeScript Express bootstrap, versioned `/api/v1` routing, CORS, Helmet,
+  request IDs, rate limiting, structured logging, standard responses, and
+  centralized error handling are in place.
+- Prisma has the initial `School` and `AcademicYear` models, plus a seed entry
+  point. No migration was run because this repository does not contain a real
+  `DATABASE_URL`.
+- `npm run build`, `npm test`, and `npm run prisma:generate` pass.
+
+Before creating a real database migration, copy `.env.example` to `.env` and add
+the Supabase PostgreSQL connection string. Feature APIs are deliberately the
+next phase. Read the complete product context in
+[`../sources/project-context.md`](../sources/project-context.md).

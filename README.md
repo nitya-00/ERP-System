@@ -153,9 +153,14 @@ npm run build
 
 ## Backend status and next phases
 
-The backend currently includes the Express application bootstrap and `GET /health`.
-Its package dependencies are declared, but feature routes and the database are not
-implemented yet.
+The backend foundation is implemented: Express, TypeScript, versioned `/api/v1`
+routing, configuration validation, structured logging, request IDs, CORS, Helmet,
+rate limiting, Prisma client generation, and the initial `School` and
+`AcademicYear` schema. `GET /health` and `GET /api/v1` are available locally.
+
+No database migration has been run because the real Supabase `DATABASE_URL` is
+not stored in this repository. Feature routes and production identity are still
+the next phases.
 
 The recommended small implementation sequence is:
 
