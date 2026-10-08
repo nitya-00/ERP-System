@@ -159,16 +159,18 @@ request IDs, CORS, Helmet, rate limiting, Prisma client generation, Supabase JWT
 verification, ERP users/roles/permissions, and `GET /api/v1/auth/me`.
 `GET /health` and `GET /api/v1` are available locally.
 
-No database migration has been run because the real Supabase `DATABASE_URL` is
-not stored in this repository. Feature routes and production identity are still
-the next phases.
+The initial Prisma migration has been applied to the configured Supabase
+PostgreSQL database. It contains The New Horizon Academy and Technology Center,
+the active 2026-27 academic year, 11 classes, 16 sections, and 8 provisional
+subjects. Secrets remain only in local environment files and are not stored in
+this repository. Feature routes and ERP-user provisioning are still next.
 
 The recommended small implementation sequence is:
 
-1. Configure the real Supabase PostgreSQL connection, run the reviewed migration,
-   and provision the first ERP users and role assignments.
-2. Add school setup: academic years, terms, classes, sections, subjects,
-   teachers, and teacher assignments.
+1. Add protected admin APIs for the existing school setup, then provision the
+   first ERP users and role assignments.
+2. Add teachers, class-teacher/subject-teacher assignments, and final
+   class-wise subject mappings when the school supplies the details.
 3. Add read-only student profiles with ownership checks for every role.
 4. Move admissions, attendance, fees, and exams one feature at a time from mock
    data to API-backed data.
@@ -178,7 +180,8 @@ The recommended small implementation sequence is:
 ## Current limitations
 
 - Frontend records are demo data, persisted locally in the browser.
-- Supabase credentials and PostgreSQL migration are intentionally not configured
-  in this repository; live login cannot work until the environment is supplied.
+- Supabase credentials remain local and are never committed. The database schema
+  and initial school catalogue are live, but ERP user accounts still need to be
+  provisioned before live sign-in is useful.
 - School-domain feature APIs, file storage, payments, and notifications are not
   implemented yet.

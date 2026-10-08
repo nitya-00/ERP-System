@@ -48,7 +48,6 @@ role-oriented, but data access remains scoped by domain and relationship.
 - **Teacher:** only assigned class/section/subject records via
   `TeacherAssignment`.
 - **Parent:** only students joined through `GuardianStudent`.
-- **Student:** only their own profile/records.
 
 Every request must pass authentication, role/permission checks, relationship
 scope checks, and the relevant business rules. Controllers must never put Prisma
@@ -75,9 +74,27 @@ Phase 1 is complete locally:
   school tables directly.
 - `npm run build`, `npm test`, and `npm run prisma:generate` pass.
 
-No migration has been run because this repository does not contain a real
-`DATABASE_URL`; no Supabase users or school records were created. Configure both
-`backend/.env` and `frontend/.env` from their `.env.example` files before using
-the live login flow. Feature APIs are deliberately the next phase. Read the
-complete product context in
+The initial migration has been applied to the configured Supabase database and
+seeded the school, 2026-27 academic year, 11 classes, 16 sections, and 8
+provisional subjects. No Supabase Auth users, ERP user records, teachers, or
+teacher assignments were seeded. Configure both `backend/.env` and
+`frontend/.env` from their `.env.example` files before using the live login
+flow. Feature APIs are deliberately the next phase. Read the complete product context in
 [`../sources/project-context.md`](../sources/project-context.md).
+
+## Academic setup API
+
+The first Phase 3 API slice is mounted at `/api/v1/academics`. Every route
+requires a valid ERP session and the `ACADEMICS_MANAGE` permission, which is
+currently assigned only to `ADMIN`.
+
+- `GET /setup` — the school catalogue: academic years, classes with sections,
+  subjects, and class-subject mappings.
+- `POST` / `PATCH` academic years, classes, sections, and subjects — create or
+  edit setup records. Set a class, section, or subject `status` to `INACTIVE`,
+  or an academic year `status` to `CLOSED`, instead of deleting history.
+- `PUT /class-subjects` — create or update a subject mapping for one class and
+  academic year.
+
+Teacher and parent catalogue routes are intentionally not exposed yet: they
+must be scoped to actual teacher assignments and guardian-child enrolments.

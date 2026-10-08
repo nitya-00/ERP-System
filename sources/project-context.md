@@ -21,23 +21,22 @@ The product should become professionally reliable without prematurely becoming a
 
 ## 2. Scope and role model
 
-The initial live roles are `ADMIN`, `TEACHER`, `PARENT`, and `STUDENT`. The data
-model must allow later addition of `SUPER_ADMIN`, `PRINCIPAL`,
-`ACADEMIC_COORDINATOR`, `ACCOUNTANT`, `CLASS_TEACHER`, `LIBRARIAN`,
-`TRANSPORT_MANAGER`, and other staff roles without a rewrite.
+The only live roles are `ADMIN`, `TEACHER`, and `PARENT`. Students are school
+records, not ERP login users. The data model is relationship-based so it can
+support future school requirements without changing the current role policy.
 
-| Feature | Admin | Teacher | Parent | Student |
-| --- | --- | --- | --- | --- |
-| Students | Full school management | Assigned students only | Linked child only | Self only |
-| Classes/subjects | Configure all | Assigned classes/subjects | View child context | View own context |
-| Attendance | School-wide monitoring | Mark/manage assigned registers | Linked child | Self |
-| Marks/results | Manage, verify, publish | Enter assigned marks | Published child results | Published own results |
-| Fees | Structures, invoices, payments, reports | No fee amount access by default | Linked child fees | Own fee status only |
-| Admissions | Full workflow | No access | Future applicant view only | No access |
-| Notices | Create/target/manage | Read and permitted creation | Read targeted notices | Read targeted notices |
-| Notifications | School-wide view/manage | Own | Own | Own |
-| Reports | Full reports/exports | Assigned teaching data | Child data | Self data |
-| Audit/users/settings | Full authorised access | No | No | No |
+| Feature | Admin | Teacher | Parent |
+| --- | --- | --- | --- |
+| Students | Full school management | Assigned students only | Linked child only |
+| Classes/subjects | Configure all | Assigned classes/subjects | View own child's context |
+| Attendance | School-wide monitoring | Mark/manage assigned registers | Linked child |
+| Marks/results | Manage, verify, publish | Enter assigned marks | Published child results |
+| Fees | Structures, invoices, payments, reports | No fee amount access by default | Linked child fees |
+| Admissions | Full workflow | No access | Future applicant view only |
+| Notices | Create/target/manage | Read and permitted creation | Read targeted notices |
+| Notifications | School-wide view/manage | Own | Own |
+| Reports | Full reports/exports | Assigned teaching data | Child data |
+| Audit/users/settings | Full authorised access | No | No |
 
 ### Non-negotiable authorization rule
 
@@ -47,7 +46,6 @@ Role alone is insufficient. Every sensitive request is checked as:
 
 - A teacher may operate only on sections and subjects in `TeacherAssignment`.
 - A parent may operate only on students connected through `GuardianStudent`.
-- A student may operate only on their own student/profile record.
 - An administrator has school-wide scope, constrained by assigned permissions.
 - All authorization defaults to deny; checks occur on every request.
 
@@ -98,8 +96,8 @@ backend. Avoid a competing direct-client and API authorization system.
 
 - `User`, `Role`, `Permission`, `RolePermission`, `Session`/`RefreshToken`
 - `Student`, `Guardian`, `GuardianStudent`, `Teacher`, `Staff`
-- User accounts are distinct from person records. A student can exist without a
-  login; a `Student`, `Teacher`, or `Guardian` profile may link to a `User`.
+- User accounts are distinct from person records. Students have no login account
+  in the current product; a `Teacher` or `Guardian` profile may link to a `User`.
 - A guardian-to-student many-to-many link stores relationship, primary-contact,
   and notification eligibility.
 
@@ -257,15 +255,16 @@ start these before the core roadmap is stable.
 
 Unit tests cover calculations and business rules. Integration tests cover major
 workflows. Authorization tests explicitly prove that teacher A cannot access
-class B, parent A cannot access child B, and student A cannot access student B.
+class B and parent A cannot access child B.
 These tests are required as modules evolve.
 
 ## 10. Current repository state
 
 - `frontend/` remains a working React/Vite application using seeded/local state.
-- `backend/` now includes the TypeScript Express foundation plus the Phase 2
-  identity structure: Supabase JWT verification, ERP users, roles, permissions,
-  audit logging, and `/api/v1/auth/me`. It is not connected to a real database.
-- The next implementation task is academic setup, not dashboard endpoints:
-  configure the real database and migration only after review, then create
-  academic years, classes, sections, subjects, teachers, and assignments.
+- `backend/` includes the TypeScript Express foundation, Phase 2 identity
+  structure, and Phase 3 academic schema: academic years, terms, classes,
+  sections, subjects, class-subject mappings, teachers, and teacher assignments.
+  The initial schema and catalogue are connected to the configured Supabase
+  database.
+- The next implementation task is protected admin academic-setup APIs, followed
+  by teachers and assignments once the school provides those details.

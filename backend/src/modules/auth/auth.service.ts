@@ -19,10 +19,16 @@ function configuredIssuer() {
 export async function verifyAccessToken(token: string): Promise<VerifiedToken> {
   const issuer = configuredIssuer();
   jwks ??= createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
-  const { payload } = await jwtVerify(token, jwks, {
-    issuer,
-    audience: env.SUPABASE_JWT_AUDIENCE,
-  });
+  let payload: Awaited<ReturnType<typeof jwtVerify>>["payload"];
+  try {
+    ({ payload } = await jwtVerify(token, jwks, {
+      issuer,
+      audience: env.SUPABASE_JWT_AUDIENCE,
+    }));
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError("INVALID_TOKEN", "The access token is invalid or expired.", 401);
+  }
 
   if (!payload.sub) {
     throw new AppError("INVALID_TOKEN", "The access token does not identify a user.", 401);

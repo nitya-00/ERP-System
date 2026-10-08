@@ -157,9 +157,9 @@ const at = (days: number, time: string) => `${dateOffset(days)}T${time}:00`;
    Classes & sections — the school's actual grouping
 --------------------------------------------------------- */
 export const CLASS_SECTIONS: { className: string; section: string }[] = [
-  { className: "Nursery", section: "" },
-  { className: "LKG", section: "" },
-  { className: "UKG", section: "" },
+  { className: "Nursery", section: "A" },
+  { className: "LKG", section: "A" },
+  { className: "UKG", section: "A" },
   { className: "First", section: "A" },
   { className: "First", section: "B" },
   { className: "Second", section: "A" },
@@ -167,16 +167,16 @@ export const CLASS_SECTIONS: { className: string; section: string }[] = [
   { className: "Third", section: "A" },
   { className: "Third", section: "B" },
   { className: "Fourth", section: "A" },
-  { className: "Fourth", section: "C" },
+  { className: "Fourth", section: "B" },
   { className: "Fifth", section: "A" },
   { className: "Fifth", section: "B" },
-  { className: "Sixth", section: "" },
-  { className: "Seventh", section: "" },
-  { className: "Eighth", section: "" },
+  { className: "Sixth", section: "A" },
+  { className: "Seventh", section: "A" },
+  { className: "Eighth", section: "A" },
 ];
 
 export const CLASSES = [...new Set(CLASS_SECTIONS.map((c) => c.className))];
-export const SECTIONS = ["A", "B", "C"];
+export const SECTIONS = ["A", "B"];
 export const sectionOptions = (className: string) =>
   CLASS_SECTIONS.filter((c) => c.className === className).map((c) => c.section);
 
